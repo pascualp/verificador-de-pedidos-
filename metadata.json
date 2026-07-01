@@ -1,0 +1,6 @@
+{
+  "name": "WSP ProcessTracker",
+  "description": "Aplicación para guardar y buscar registros de chats procesados de WhatsApp, con filtros por fecha y palabras clave.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

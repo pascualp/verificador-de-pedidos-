@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidChat(data) {
+      return data.keys().hasAll(['clientName', 'processingMethod', 'processedContent', 'date', 'userId', 'createdAt']) &&
+        data.clientName is string && data.clientName.size() <= 200 &&
+        data.processingMethod is string && data.processingMethod.size() <= 1000 &&
+        data.processedContent is string && data.processedContent.size() <= 10000 &&
+        data.date is string && data.date.size() <= 50 &&
+        data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid &&
+        data.createdAt is timestamp &&
+        (!data.keys().hasAny(['keywords']) || (data.keywords is list && data.keywords.size() <= 50)) &&
+        (!data.keys().hasAny(['originalChatImage']) || (data.originalChatImage is string && data.originalChatImage.size() <= 800000)) &&
+        (!data.keys().hasAny(['originalChatText']) || (data.originalChatText is string && data.originalChatText.size() <= 10000));
+    }
+
+    match /chats/{chatId} {
+      allow read, delete: if isSignedIn() && isValidId(chatId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(chatId) &&
+        isValidChat(incoming()) &&
+        incoming().keys().size() <= 9 &&
+        incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidId(chatId) && existing().userId == request.auth.uid &&
+        isValidChat(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['clientName', 'processingMethod', 'processedContent', 'date', 'keywords', 'originalChatImage', 'originalChatText']);
+    }
+  }
+}
