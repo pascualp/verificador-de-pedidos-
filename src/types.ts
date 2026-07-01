@@ -5,8 +5,7 @@ export interface ChatRecord {
   processedContent: string;
   date: string;
   keywords?: string[];
-  userId: string;
-  createdAt: any; // Firestore Timestamp
+  createdAt: string;
   originalChatImage?: string;
   originalChatText?: string;
 }

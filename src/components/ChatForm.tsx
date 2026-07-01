@@ -1,13 +1,9 @@
 import { useState } from 'react';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
-import { handleFirestoreError, OperationType } from '../errorUtils';
-import { useAuth } from '../AuthContext';
 import { format } from 'date-fns';
 import { Image as ImageIcon, X } from 'lucide-react';
+import { ChatRecord } from '../types';
 
 export function ChatForm({ onSave }: { onSave: () => void }) {
-  const { user } = useAuth();
   const [clientName, setClientName] = useState('');
   const [processingMethod, setProcessingMethod] = useState('Pedido Tabular');
   const [processedContent, setProcessedContent] = useState('');
@@ -15,43 +11,35 @@ export function ChatForm({ onSave }: { onSave: () => void }) {
   const [keywordsInput, setKeywordsInput] = useState('');
   const [originalChatText, setOriginalChatText] = useState('');
   const [originalChatImage, setOriginalChatImage] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-    setLoading(true);
 
-    try {
-      const chatRef = doc(collection(db, 'chats'));
-      const keywords = keywordsInput.split(',').map(k => k.trim()).filter(k => k);
-      
-      const data: any = {
-        clientName,
-        processingMethod,
-        processedContent,
-        date,
-        keywords: keywords.length > 0 ? keywords : [],
-        userId: user.uid,
-        createdAt: serverTimestamp(),
-      };
+    const keywords = keywordsInput.split(',').map(k => k.trim()).filter(k => k);
+    
+    const newRecord: ChatRecord = {
+      id: crypto.randomUUID(),
+      clientName,
+      processingMethod,
+      processedContent,
+      date,
+      keywords: keywords.length > 0 ? keywords : undefined,
+      createdAt: new Date().toISOString(),
+      originalChatImage: originalChatImage || undefined,
+      originalChatText: originalChatText || undefined,
+    };
 
-      if (originalChatImage) data.originalChatImage = originalChatImage;
-      if (originalChatText) data.originalChatText = originalChatText;
-
-      await setDoc(chatRef, data);
-      
-      setClientName('');
-      setProcessedContent('');
-      setKeywordsInput('');
-      setOriginalChatText('');
-      setOriginalChatImage('');
-      onSave();
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'chats');
-    } finally {
-      setLoading(false);
-    }
+    const existingData = localStorage.getItem('whats_log_chats');
+    const chats: ChatRecord[] = existingData ? JSON.parse(existingData) : [];
+    chats.push(newRecord);
+    localStorage.setItem('whats_log_chats', JSON.stringify(chats));
+    
+    setClientName('');
+    setProcessedContent('');
+    setKeywordsInput('');
+    setOriginalChatText('');
+    setOriginalChatImage('');
+    onSave();
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -177,10 +165,9 @@ export function ChatForm({ onSave }: { onSave: () => void }) {
         <div className="flex justify-end pt-2">
           <button 
             type="submit" 
-            disabled={loading}
-            className="bg-black text-white font-semibold py-2.5 px-5 rounded-lg text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="bg-black text-white font-semibold py-2.5 px-5 rounded-lg text-sm hover:opacity-90 transition-opacity"
           >
-            {loading ? 'Guardando...' : '+ Nuevo Proceso'}
+            + Nuevo Proceso
           </button>
         </div>
       </form>

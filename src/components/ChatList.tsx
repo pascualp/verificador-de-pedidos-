@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, writeBatch, doc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useAuth } from '../AuthContext';
-import { handleFirestoreError, OperationType } from '../errorUtils';
 import { ChatRecord } from '../types';
-import { Search, Calendar, Tag, User as UserIcon } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -38,67 +34,39 @@ function renderContent(content: string) {
 }
 
 export function ChatList() {
-  const { user } = useAuth();
   const [chats, setChats] = useState<ChatRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    
-    const q = query(
-      collection(db, 'chats'),
-      where('userId', '==', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const records = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as ChatRecord[];
+    const existingData = localStorage.getItem('whats_log_chats');
+    if (existingData) {
+      const records: ChatRecord[] = JSON.parse(existingData);
       
       const today = format(new Date(), 'yyyy-MM-dd');
       const toKeep: ChatRecord[] = [];
-      const toDelete: ChatRecord[] = [];
 
       records.forEach(record => {
-        if (record.date < today) {
-          toDelete.push(record);
-        } else {
+        if (record.date >= today) {
           toKeep.push(record);
         }
       });
 
-      if (toDelete.length > 0) {
-        try {
-          const batch = writeBatch(db);
-          toDelete.forEach(record => {
-            batch.delete(doc(db, 'chats', record.id));
-          });
-          await batch.commit();
-        } catch (error) {
-          console.error("Error deleting old records:", error);
-        }
+      // Update localStorage if we deleted old records
+      if (toKeep.length !== records.length) {
+        localStorage.setItem('whats_log_chats', JSON.stringify(toKeep));
       }
 
-      // Sort client-side by createdAt descending
       toKeep.sort((a, b) => {
-        const dateA = a.createdAt?.toMillis?.() || Date.now();
-        const dateB = b.createdAt?.toMillis?.() || Date.now();
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
         return dateB - dateA;
       });
       
       setChats(toKeep);
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'chats');
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
+    }
+  }, []);
 
   const filteredChats = chats.filter(chat => {
     const matchesSearch = 
@@ -111,10 +79,6 @@ export function ChatList() {
     
     return matchesSearch && matchesDate;
   });
-
-  if (loading) {
-    return <div className="text-center py-10 text-gray-500">Cargando historiales...</div>;
-  }
 
   return (
     <div className="space-y-6">
