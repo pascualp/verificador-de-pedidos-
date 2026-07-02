@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Driver } from '../types';
-import { User, RotateCcw } from 'lucide-react';
+import { User, RotateCcw, Clock } from 'lucide-react';
+import { TimeElapsed } from './TimeElapsed';
 
 export function RestaurantDashboard({ drivers, updateDriver }: { drivers: Driver[], updateDriver: (d: Driver) => void }) {
   const [orderInputs, setOrderInputs] = useState<Record<string, string>>({});
@@ -26,13 +27,6 @@ export function RestaurantDashboard({ drivers, updateDriver }: { drivers: Driver
       activeOrders: 0,
       lastUpdated: new Date().toISOString()
     });
-  };
-
-  const handleEditSave = (driver: Driver) => {
-    if (editName.trim()) {
-      updateDriver({ ...driver, name: editName.trim() });
-    }
-    setEditingId(null);
   };
 
   return (
@@ -80,26 +74,30 @@ export function RestaurantDashboard({ drivers, updateDriver }: { drivers: Driver
                     type="number"
                     min="1"
                     placeholder="Pedidos"
-                    className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black text-center"
+                    className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-center"
                     value={orderInputs[driver.id] || ''}
                     onChange={(e) => setOrderInputs({ ...orderInputs, [driver.id]: e.target.value })}
                   />
                   <button 
                     onClick={() => handleAssign(driver)}
                     disabled={!orderInputs[driver.id] || parseInt(orderInputs[driver.id], 10) < 1}
-                    className="flex-1 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                    className="flex-1 bg-cyan-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-600 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     Asignar
                   </button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded-md text-center">
-                    Llevando <strong>{driver.activeOrders}</strong> {driver.activeOrders === 1 ? 'pedido' : 'pedidos'}
+                  <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded-md text-center flex flex-col items-center justify-center gap-1">
+                    <div>Llevando <strong>{driver.activeOrders}</strong> {driver.activeOrders === 1 ? 'pedido' : 'pedidos'}</div>
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <Clock className="w-3 h-3" />
+                      Hace: <TimeElapsed startTime={driver.lastUpdated} />
+                    </div>
                   </div>
                   <button 
                     onClick={() => handleReturn(driver)}
-                    className="w-full border-2 border-black text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-2"
+                    className="w-full border-2 border-cyan-500 text-cyan-500 px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-50 flex items-center justify-center gap-2 transition-colors"
                   >
                     <RotateCcw className="w-4 h-4" />
                     Marcar como Libre

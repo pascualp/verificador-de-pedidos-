@@ -1,22 +1,28 @@
 import { Store, Building2, LogOut } from 'lucide-react';
 
-export function Header({ role, setRole }: { role: 'restaurant' | 'central', setRole: (role: 'restaurant' | 'central' | null) => void }) {
+export function Header({ role, setRole }: { role: 'restaurant1' | 'restaurant2' | 'central' | null, setRole: (role: 'restaurant1' | 'restaurant2' | 'central' | null) => void }) {
   const handleLogout = () => {
     localStorage.removeItem('delivery_role');
     setRole(null);
+  };
+
+  const getRoleLabel = () => {
+    if (role === 'restaurant1') return 'Restaurante Tropical';
+    if (role === 'restaurant2') return 'Pizzería S^tatua';
+    if (role === 'central') return 'Central';
+    return '';
   };
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shrink-0">
       <div className="max-w-5xl mx-auto px-8 h-16 flex items-center justify-between w-full">
         <div className="flex items-center gap-3">
-          <div className="bg-black p-2 rounded-lg flex items-center justify-center">
-            {role === 'restaurant' ? <Store className="w-5 h-5 text-white" /> : <Building2 className="w-5 h-5 text-white" />}
-          </div>
-          <span className="font-bold text-lg tracking-tight text-[#1A1A1A]">DELIVERY-SYNC</span>
-          <span className="ml-2 text-sm text-gray-500 font-medium px-2 py-1 bg-gray-100 rounded-md">
-            {role === 'restaurant' ? 'Restaurante' : 'Central'}
-          </span>
+          <img src="/logo.svg" alt="Dumoh Delivery" className="h-10 object-contain" />
+          {role && (
+            <span className="ml-2 text-sm text-gray-500 font-medium px-2 py-1 bg-gray-100 rounded-md">
+              {getRoleLabel()}
+            </span>
+          )}
         </div>
         <div className="flex items-center">
           <button 

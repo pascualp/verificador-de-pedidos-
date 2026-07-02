@@ -9,4 +9,5 @@ export interface Driver {
   totalOrders: number;
   lastUpdated: string;
   scheduledDays?: DayOfWeek[];
+  restaurantId: string;
 }

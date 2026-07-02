@@ -1,6 +1,6 @@
 {
-  "name": "WSP ProcessTracker",
-  "description": "Aplicación para guardar y buscar registros de chats procesados de WhatsApp, con filtros por fecha y palabras clave.",
+  "name": "Dumoh Delivery",
+  "description": "Plataforma de gestión de repartidores y pedidos para Dumoh Delivery.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

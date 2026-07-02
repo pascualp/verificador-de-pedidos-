@@ -1,22 +1,23 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { RestaurantDashboard } from './components/RestaurantDashboard';
 import { CentralDashboard } from './components/CentralDashboard';
 import { Driver } from './types';
-import { Store, Building2, Lock, ArrowRight, X } from 'lucide-react';
+import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff } from 'lucide-react';
 import { db } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 export default function App() {
-  const [role, setRole] = useState<'restaurant' | 'central' | null>(null);
+  const [role, setRole] = useState<'restaurant1' | 'restaurant2' | 'central' | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [pendingRole, setPendingRole] = useState<'restaurant' | 'central' | null>(null);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('delivery_role') as 'restaurant' | 'central' | null;
+    const savedRole = localStorage.getItem('delivery_role') as 'restaurant1' | 'restaurant2' | 'central' | null;
     if (savedRole) {
       setRole(savedRole);
     }
@@ -58,14 +59,15 @@ export default function App() {
     }
   };
 
-  const addDriver = async (name: string) => {
+  const addDriver = async (name: string, restaurantId: string = 'restaurant1') => {
     const newDriver: Driver = {
       id: crypto.randomUUID(),
       name,
       status: 'Libre',
       activeOrders: 0,
       totalOrders: 0,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      restaurantId
     };
     try {
       await setDoc(doc(db, 'drivers', newDriver.id), newDriver);
@@ -82,11 +84,20 @@ export default function App() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pendingRole === 'restaurant' && password === 'restaurante') {
-      localStorage.setItem('delivery_role', 'restaurant');
-      setRole('restaurant');
-      setPendingRole(null);
-    } else if (pendingRole === 'central' && password === 'central') {
+    const pw = password.toLowerCase().trim();
+    if (pendingRole === 'restaurant') {
+      if (pw === 'tropical' || pw === 'restaurante1') {
+        localStorage.setItem('delivery_role', 'restaurant1');
+        setRole('restaurant1');
+        setPendingRole(null);
+      } else if (pw === 'statua' || pw === 'pizzeria s^tatua' || pw === 'restaurante2') {
+        localStorage.setItem('delivery_role', 'restaurant2');
+        setRole('restaurant2');
+        setPendingRole(null);
+      } else {
+        setError('Contraseña incorrecta. Usa "tropical" o "statua".');
+      }
+    } else if (pendingRole === 'central' && pw === 'central') {
       localStorage.setItem('delivery_role', 'central');
       setRole('central');
       setPendingRole(null);
@@ -119,20 +130,29 @@ export default function App() {
             </div>
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <div>
-                <input
-                  type="password"
-                  placeholder="Contraseña"
-                  autoFocus
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                  className={`w-full border ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-black focus:border-black'} rounded-lg px-4 py-3 outline-none text-center tracking-widest`}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Contraseña"
+                    autoFocus
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                    className={`w-full border ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-cyan-500 focus:border-cyan-500'} rounded-lg px-4 py-3 outline-none tracking-widest pr-12`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
                 {error && <p className="text-red-500 text-xs mt-2 text-center font-medium">{error}</p>}
               </div>
               <button 
                 type="submit"
                 disabled={!password}
-                className="bg-black text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
+                className="bg-cyan-500 text-white py-3 rounded-lg font-medium hover:bg-cyan-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 Ingresar
                 <ArrowRight className="w-4 h-4" />
@@ -141,8 +161,8 @@ export default function App() {
           </div>
         ) : (
           <>
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold tracking-tight mb-2">DELIVERY-SYNC</h1>
+            <div className="flex flex-col items-center justify-center text-center mb-8">
+              <img src="/logo.svg" alt="Dumoh Delivery" className="h-16 object-contain mb-4" />
               <p className="text-gray-500">Selecciona tu rol para continuar</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
@@ -150,7 +170,7 @@ export default function App() {
                 onClick={() => handleSelectRoleClick('restaurant')}
                 className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-4 group"
               >
-                <div className="bg-gray-100 p-4 rounded-full group-hover:bg-black group-hover:text-white transition-colors">
+                <div className="bg-gray-100 p-4 rounded-full group-hover:bg-cyan-500 group-hover:text-white transition-colors">
                   <Store className="w-8 h-8" />
                 </div>
                 <div className="text-center">
@@ -163,7 +183,7 @@ export default function App() {
                 onClick={() => handleSelectRoleClick('central')}
                 className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-4 group"
               >
-                <div className="bg-gray-100 p-4 rounded-full group-hover:bg-black group-hover:text-white transition-colors">
+                <div className="bg-gray-100 p-4 rounded-full group-hover:bg-cyan-500 group-hover:text-white transition-colors">
                   <Building2 className="w-8 h-8" />
                 </div>
                 <div className="text-center">
@@ -182,8 +202,11 @@ export default function App() {
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans pb-12">
       <Header role={role} setRole={setRole} />
       <main className="max-w-5xl mx-auto px-8 pt-8">
-        {role === 'restaurant' ? (
-          <RestaurantDashboard drivers={drivers} updateDriver={updateDriver} />
+        {role === 'restaurant1' || role === 'restaurant2' ? (
+          <RestaurantDashboard 
+            drivers={drivers.filter(d => d.restaurantId === role || (!d.restaurantId && role === 'restaurant1'))} 
+            updateDriver={updateDriver} 
+          />
         ) : (
           <CentralDashboard drivers={drivers} updateDriver={updateDriver} addDriver={addDriver} deleteDriver={deleteDriver} />
         )}
