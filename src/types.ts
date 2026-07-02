@@ -1,4 +1,5 @@
 export type DriverStatus = 'Libre' | 'Repartiendo';
+export type DayOfWeek = 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes' | 'Sábado' | 'Domingo';
 
 export interface Driver {
   id: string;
@@ -7,4 +8,5 @@ export interface Driver {
   activeOrders: number;
   totalOrders: number;
   lastUpdated: string;
+  scheduledDays?: DayOfWeek[];
 }

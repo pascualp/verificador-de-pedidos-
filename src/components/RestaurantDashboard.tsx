@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { Driver } from '../types';
-import { User, Plus, RotateCcw, Edit2, Trash2, Check, X } from 'lucide-react';
+import { User, RotateCcw } from 'lucide-react';
 
-export function RestaurantDashboard({ drivers, updateDriver, addDriver, deleteDriver }: { drivers: Driver[], updateDriver: (d: Driver) => void, addDriver: (name: string) => void, deleteDriver: (id: string) => void }) {
-  const [newDriverName, setNewDriverName] = useState('');
+export function RestaurantDashboard({ drivers, updateDriver }: { drivers: Driver[], updateDriver: (d: Driver) => void }) {
   const [orderInputs, setOrderInputs] = useState<Record<string, string>>({});
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
 
   const handleAssign = (driver: Driver) => {
     const orders = parseInt(orderInputs[driver.id] || '0', 10);
@@ -56,30 +53,17 @@ export function RestaurantDashboard({ drivers, updateDriver, addDriver, deleteDr
                   <User className="w-5 h-5 text-gray-700" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  {editingId === driver.id ? (
-                    <div className="flex items-center gap-1">
-                      <input 
-                        type="text" 
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-0.5 text-sm w-24 outline-none focus:border-black"
-                        autoFocus
-                      />
-                      <button onClick={() => handleEditSave(driver)} className="text-green-600 hover:text-green-700 p-1"><Check className="w-4 h-4" /></button>
-                      <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="w-4 h-4" /></button>
+                  <div className="flex flex-col">
+                    <div className="font-semibold text-lg leading-tight truncate flex items-center gap-2">
+                      {driver.name}
                     </div>
-                  ) : (
-                    <div className="flex flex-col">
-                      <div className="font-semibold text-lg leading-tight truncate flex items-center gap-2">
-                        {driver.name}
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                          <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); }} className="text-gray-400 hover:text-black transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => { if(window.confirm(`¿Eliminar a ${driver.name}?`)) deleteDriver(driver.id); }} className="text-gray-400 hover:text-red-500 transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
-                        </div>
+                    <div className="text-xs text-gray-500 mt-0.5">Historial: {driver.totalOrders || 0} pedidos</div>
+                    {driver.scheduledDays && driver.scheduledDays.length > 0 && (
+                      <div className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-semibold">
+                        Días: {driver.scheduledDays.map(d => d.slice(0,3)).join(', ')}
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5">Historial: {driver.totalOrders || 0} pedidos</div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="shrink-0 ml-2">
@@ -125,27 +109,6 @@ export function RestaurantDashboard({ drivers, updateDriver, addDriver, deleteDr
             </div>
           </div>
         ))}
-
-        <div className="bg-gray-50 border-2 border-dashed border-gray-300 p-5 rounded-xl flex flex-col justify-center items-center text-center">
-          <form 
-            onSubmit={(e) => { e.preventDefault(); if (newDriverName.trim()) { addDriver(newDriverName.trim()); setNewDriverName(''); } }}
-            className="w-full flex flex-col items-center gap-3"
-          >
-            <div className="bg-white p-2 rounded-full shadow-sm border border-gray-200">
-              <Plus className="w-5 h-5 text-gray-500" />
-            </div>
-            <input 
-              type="text"
-              placeholder="Nombre del repartidor..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-black text-center"
-              value={newDriverName}
-              onChange={(e) => setNewDriverName(e.target.value)}
-            />
-            <button type="submit" className="text-sm font-medium text-black hover:underline" disabled={!newDriverName.trim()}>
-              Añadir Repartidor
-            </button>
-          </form>
-        </div>
       </div>
     </div>
   );

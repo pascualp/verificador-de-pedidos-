@@ -183,9 +183,9 @@ export default function App() {
       <Header role={role} setRole={setRole} />
       <main className="max-w-5xl mx-auto px-8 pt-8">
         {role === 'restaurant' ? (
-          <RestaurantDashboard drivers={drivers} updateDriver={updateDriver} addDriver={addDriver} deleteDriver={deleteDriver} />
+          <RestaurantDashboard drivers={drivers} updateDriver={updateDriver} />
         ) : (
-          <CentralDashboard drivers={drivers} />
+          <CentralDashboard drivers={drivers} updateDriver={updateDriver} addDriver={addDriver} deleteDriver={deleteDriver} />
         )}
       </main>
     </div>
