@@ -1,0 +1,22 @@
+{
+  "collections": [
+    {
+      "name": "drivers",
+      "description": "Store delivery drivers and their statuses",
+      "fields": {
+        "id": "string",
+        "name": "string",
+        "status": "string",
+        "activeOrders": "number",
+        "totalOrders": "number",
+        "lastUpdated": "string"
+      },
+      "rules": [
+        {
+          "allow": "read, write",
+          "condition": "true"
+        }
+      ]
+    }
+  ]
+}

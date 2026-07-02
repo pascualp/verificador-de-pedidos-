@@ -1,11 +1,10 @@
-export interface ChatRecord {
+export type DriverStatus = 'Libre' | 'Repartiendo';
+
+export interface Driver {
   id: string;
-  clientName: string;
-  processingMethod: string;
-  processedContent: string;
-  date: string;
-  keywords?: string[];
-  createdAt: string;
-  originalChatImage?: string;
-  originalChatText?: string;
+  name: string;
+  status: DriverStatus;
+  activeOrders: number;
+  totalOrders: number;
+  lastUpdated: string;
 }
