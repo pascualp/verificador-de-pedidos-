@@ -140,7 +140,7 @@ export default function App() {
       } else {
         setError('Contraseña incorrecta. Usa "tropical" o "statua".');
       }
-    } else if (roleToCheck === 'driver' && pw === 'repa') {
+    } else if (roleToCheck === 'driver' && pw === 'repartidor') {
       localStorage.setItem('delivery_role', 'driver');
       localStorage.setItem('dumoh_app_mode', 'driver');
       setRole('driver');
