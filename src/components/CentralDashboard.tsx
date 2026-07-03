@@ -33,19 +33,19 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
     const isHidden = hiddenRestaurants[restId];
 
     const headerColors = {
-      orange: "border-orange-500 text-orange-600 bg-orange-100",
-      rose: "border-rose-500 text-rose-600 bg-rose-100"
+      orange: "border-orange-600 text-orange-700 bg-orange-50",
+      rose: "border-rose-500 text-rose-600 bg-rose-50"
     };
 
     const containerColors = {
-      orange: "bg-orange-50/30",
-      rose: "bg-rose-50/30"
+      orange: "bg-orange-50/20",
+      rose: "bg-rose-50/20"
     };
 
     return (
       <div className="flex flex-col gap-6 transition-all duration-300">
-        <div className="flex items-center justify-between border-b-2 pb-3" style={{ borderColor: themeColor === 'orange' ? '#f97316' : '#f43f5e' }}>
-          <h2 className={`text-2xl font-black flex items-center gap-3 ${headerColors[themeColor].split(' ')[1]}`}>
+        <div className="flex items-center justify-between border-b-2 pb-3" style={{ borderColor: themeColor === 'orange' ? '#ea580c' : '#f43f5e' }}>
+          <h2 className={`text-2xl font-black flex items-center gap-3 ${themeColor === 'orange' ? 'text-orange-700' : 'text-rose-600'}`}>
             <div className={`p-2 rounded-xl ${headerColors[themeColor].split(' ')[2]}`}>
               <Icon className="w-6 h-6" />
             </div>
@@ -73,45 +73,49 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
                 <div className="p-6 text-center text-gray-500 text-sm bg-white/50">No hay repartidores en ruta.</div>
               ) : (
                 active.map(driver => (
-                  <div key={driver.id} className="p-4 flex items-center justify-between hover:bg-white/80 bg-white/40 transition-colors group">
-                    <div className="min-w-0 flex-1">
-                      {editingId === driver.id ? (
-                        <div className="flex items-center gap-1 mb-1">
-                          <input 
-                            type="text" 
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="border border-gray-300 rounded px-2 py-0.5 text-sm w-32 outline-none focus:border-cyan-500 bg-white"
-                            autoFocus
-                          />
-                          <button onClick={() => handleEditSave(driver)} className="text-green-600 hover:text-green-700 p-1 bg-white rounded shadow-sm"><Check className="w-4 h-4" /></button>
-                          <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 bg-white rounded shadow-sm"><X className="w-4 h-4" /></button>
-                        </div>
-                      ) : (
-                        <div className="font-medium text-lg flex items-center gap-2">
-                          {driver.name}
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                            <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => { if(window.confirm(`¿Eliminar a ${driver.name}?`)) deleteDriver(driver.id); }} className="text-gray-400 hover:text-red-500 transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                        <span>Historial: {driver.totalOrders || 0} pedidos</span>
-                      </div>
-                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                        <Clock className="w-3 h-3" />
-                        Salió hace {formatDistanceToNow(new Date(driver.lastUpdated), { locale: es })}
-                        <TimeElapsed startTime={driver.lastUpdated} />
-                      </div>
+                  <div key={driver.id} className="flex flex-col hover:bg-white/80 bg-white/40 transition-colors group border-b border-gray-100 last:border-b-0">
+                    <div className="px-4 py-2.5 text-white text-sm font-black tracking-widest uppercase shadow-sm bg-cyan-500">
+                      {driver.name}
                     </div>
-                    <div className="flex items-center gap-3 ml-4">
-                      <div className="flex flex-col items-end">
-                        <span className="text-xl font-bold leading-none">{driver.activeOrders}</span>
-                        <span className="text-xs text-gray-500 font-medium">pedidos</span>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        {editingId === driver.id ? (
+                          <div className="flex items-center gap-1 mb-1">
+                            <input 
+                              type="text" 
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="border border-gray-300 rounded px-2 py-0.5 text-sm w-32 outline-none focus:border-cyan-500 bg-white"
+                              autoFocus
+                            />
+                            <button onClick={() => handleEditSave(driver)} className="text-green-600 hover:text-green-700 p-1 bg-white rounded shadow-sm"><Check className="w-4 h-4" /></button>
+                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 bg-white rounded shadow-sm"><X className="w-4 h-4" /></button>
+                          </div>
+                        ) : (
+                          <div className="font-medium flex items-center gap-2">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                              <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => { if(window.confirm(`¿Eliminar a ${driver.name}?`)) deleteDriver(driver.id); }} className="text-gray-400 hover:text-red-500 transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                          <span>Historial: {driver.totalOrders || 0} pedidos</span>
+                        </div>
+                        <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                          <Clock className="w-3 h-3" />
+                          Salió hace {formatDistanceToNow(new Date(driver.lastUpdated), { locale: es })}
+                          <TimeElapsed startTime={driver.lastUpdated} />
+                        </div>
                       </div>
-                      <div className="bg-blue-100 p-2 rounded-lg bg-opacity-80">
-                        <Package className="w-5 h-5 text-blue-700" />
+                      <div className="flex items-center gap-3 ml-4">
+                        <div className="flex flex-col items-end">
+                          <span className="text-xl font-bold leading-none">{driver.activeOrders}</span>
+                          <span className="text-xs text-gray-500 font-medium">pedidos</span>
+                        </div>
+                        <div className="bg-blue-100 p-2 rounded-lg bg-opacity-80">
+                          <Package className="w-5 h-5 text-blue-700" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -132,39 +136,43 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
                 <div className="p-6 text-center text-gray-500 text-sm bg-white/50">No hay repartidores libres.</div>
               ) : (
                 free.map(driver => (
-                  <div key={driver.id} className="p-4 flex items-center justify-between hover:bg-white/80 bg-white/40 transition-colors group">
-                    <div className="min-w-0 flex-1">
-                      {editingId === driver.id ? (
-                        <div className="flex items-center gap-1 mb-1">
-                          <input 
-                            type="text" 
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="border border-gray-300 rounded px-2 py-0.5 text-sm w-32 outline-none focus:border-cyan-500 bg-white"
-                            autoFocus
-                          />
-                          <button onClick={() => handleEditSave(driver)} className="text-green-600 hover:text-green-700 p-1 bg-white rounded shadow-sm"><Check className="w-4 h-4" /></button>
-                          <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 bg-white rounded shadow-sm"><X className="w-4 h-4" /></button>
-                        </div>
-                      ) : (
-                        <div className="font-medium text-lg flex items-center gap-2">
-                          {driver.name}
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                            <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => { if(window.confirm(`¿Eliminar a ${driver.name}?`)) deleteDriver(driver.id); }} className="text-gray-400 hover:text-red-500 transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                        <span>Historial: {driver.totalOrders || 0} pedidos entregados</span>
-                      </div>
+                  <div key={driver.id} className="flex flex-col hover:bg-white/80 bg-white/40 transition-colors group border-b border-gray-100 last:border-b-0">
+                    <div className="px-4 py-2.5 text-white text-sm font-black tracking-widest uppercase shadow-sm bg-cyan-500">
+                      {driver.name}
                     </div>
-                    <div className="relative ml-4">
-                      <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20"></div>
-                      <span className="relative px-3 py-1 bg-green-50 border border-green-200 text-green-700 rounded-full text-xs font-bold shadow-sm flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                        Disponible
-                      </span>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        {editingId === driver.id ? (
+                          <div className="flex items-center gap-1 mb-1">
+                            <input 
+                              type="text" 
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="border border-gray-300 rounded px-2 py-0.5 text-sm w-32 outline-none focus:border-cyan-500 bg-white"
+                              autoFocus
+                            />
+                            <button onClick={() => handleEditSave(driver)} className="text-green-600 hover:text-green-700 p-1 bg-white rounded shadow-sm"><Check className="w-4 h-4" /></button>
+                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 bg-white rounded shadow-sm"><X className="w-4 h-4" /></button>
+                          </div>
+                        ) : (
+                          <div className="font-medium flex items-center gap-2">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                              <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => { if(window.confirm(`¿Eliminar a ${driver.name}?`)) deleteDriver(driver.id); }} className="text-gray-400 hover:text-red-500 transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                          <span>Historial: {driver.totalOrders || 0} pedidos entregados</span>
+                        </div>
+                      </div>
+                      <div className="relative ml-4">
+                        <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20"></div>
+                        <span className="relative px-3 py-1 bg-green-50 border border-green-200 text-green-700 rounded-full text-xs font-bold shadow-sm flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                          Disponible
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))

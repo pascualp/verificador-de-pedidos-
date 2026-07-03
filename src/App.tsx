@@ -2,24 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { RestaurantDashboard } from './components/RestaurantDashboard';
 import { CentralDashboard } from './components/CentralDashboard';
+import { DriverDashboard } from './components/DriverDashboard';
 import { Driver } from './types';
-import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff } from 'lucide-react';
+import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff, Bike } from 'lucide-react';
 import { db } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 export default function App() {
-  const [role, setRole] = useState<'restaurant1' | 'restaurant2' | 'central' | null>(null);
+  const [role, setRole] = useState<'restaurant1' | 'restaurant2' | 'central' | 'driver' | null>(null);
+  const [appMode, setAppMode] = useState<'restaurant' | 'central' | 'driver' | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isReady, setIsReady] = useState(false);
-  const [pendingRole, setPendingRole] = useState<'restaurant' | 'central' | null>(null);
+  const [pendingRole, setPendingRole] = useState<'restaurant' | 'central' | 'driver' | null>(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('delivery_role') as 'restaurant1' | 'restaurant2' | 'central' | null;
+    const savedRole = localStorage.getItem('delivery_role') as 'restaurant1' | 'restaurant2' | 'central' | 'driver' | null;
     if (savedRole) {
       setRole(savedRole);
+    }
+    const savedAppMode = localStorage.getItem('dumoh_app_mode') as 'restaurant' | 'central' | 'driver' | null;
+    if (savedAppMode) {
+      setAppMode(savedAppMode);
     }
     setIsReady(true);
 
@@ -85,21 +91,35 @@ export default function App() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const pw = password.toLowerCase().trim();
-    if (pendingRole === 'restaurant') {
+    const roleToCheck = (appMode && appMode !== 'central') ? appMode : pendingRole;
+
+    if (roleToCheck === 'restaurant') {
       if (pw === 'tropical' || pw === 'restaurante1') {
         localStorage.setItem('delivery_role', 'restaurant1');
+        localStorage.setItem('dumoh_app_mode', 'restaurant');
         setRole('restaurant1');
+        setAppMode('restaurant');
         setPendingRole(null);
       } else if (pw === 'statua' || pw === 'pizzeria s^tatua' || pw === 'restaurante2') {
         localStorage.setItem('delivery_role', 'restaurant2');
+        localStorage.setItem('dumoh_app_mode', 'restaurant');
         setRole('restaurant2');
+        setAppMode('restaurant');
         setPendingRole(null);
       } else {
         setError('Contraseña incorrecta. Usa "tropical" o "statua".');
       }
-    } else if (pendingRole === 'central' && pw === 'central') {
+    } else if (roleToCheck === 'driver' && pw === 'repa') {
+      localStorage.setItem('delivery_role', 'driver');
+      localStorage.setItem('dumoh_app_mode', 'driver');
+      setRole('driver');
+      setAppMode('driver');
+      setPendingRole(null);
+    } else if (roleToCheck === 'central' && pw === 'central') {
       localStorage.setItem('delivery_role', 'central');
+      localStorage.removeItem('dumoh_app_mode');
       setRole('central');
+      setAppMode(null);
       setPendingRole(null);
     } else {
       setError('Contraseña incorrecta');
@@ -111,21 +131,27 @@ export default function App() {
   }
 
   if (!role) {
+    const activePendingRole = (appMode && appMode !== 'central') ? appMode : pendingRole;
+
     return (
       <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-4 font-sans text-[#1A1A1A]">
-        {pendingRole ? (
+        {activePendingRole ? (
           <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm max-w-sm w-full relative">
-            <button 
-              onClick={() => setPendingRole(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-black"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {!appMode && (
+              <button 
+                onClick={() => setPendingRole(null)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-black"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
             <div className="flex flex-col items-center mb-6">
               <div className="bg-gray-100 p-4 rounded-full mb-4">
                 <Lock className="w-6 h-6 text-black" />
               </div>
-              <h2 className="text-xl font-bold">Ingresar a {pendingRole === 'restaurant' ? 'Restaurante' : 'Central'}</h2>
+              <h2 className="text-xl font-bold">
+                Ingresar a {activePendingRole === 'restaurant' ? 'Restaurante' : activePendingRole === 'driver' ? 'Repartidor' : 'Central'}
+              </h2>
               <p className="text-sm text-gray-500 mt-1">Introduce la contraseña de acceso</p>
             </div>
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -158,6 +184,21 @@ export default function App() {
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
+            {appMode && (
+              <div className="mt-6 text-center">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem('dumoh_app_mode');
+                    setAppMode(null);
+                    setPendingRole(null);
+                  }}
+                  className="text-xs text-gray-400 hover:text-gray-600 underline"
+                >
+                  Cambiar vista de aplicación
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -175,13 +216,26 @@ export default function App() {
                 </div>
                 <div className="text-center">
                   <h2 className="text-xl font-bold mb-1">Restaurante</h2>
-                  <p className="text-sm text-gray-500">Gestiona repartidores y asigna pedidos</p>
+                  <p className="text-sm text-gray-500">Gestiona y asigna pedidos</p>
+                </div>
+              </button>
+
+              <button 
+                onClick={() => handleSelectRoleClick('driver')}
+                className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-4 group"
+              >
+                <div className="bg-gray-100 p-4 rounded-full group-hover:bg-cyan-500 group-hover:text-white transition-colors">
+                  <Bike className="w-8 h-8" />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-xl font-bold mb-1">Soy Repartidor</h2>
+                  <p className="text-sm text-gray-500">Actualiza tu estado desde el móvil</p>
                 </div>
               </button>
 
               <button 
                 onClick={() => handleSelectRoleClick('central')}
-                className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-4 group"
+                className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-4 group sm:col-span-2"
               >
                 <div className="bg-gray-100 p-4 rounded-full group-hover:bg-cyan-500 group-hover:text-white transition-colors">
                   <Building2 className="w-8 h-8" />
@@ -200,12 +254,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans pb-12">
-      <Header role={role} setRole={setRole} />
-      <main className="max-w-5xl mx-auto px-8 pt-8">
-        {role === 'restaurant1' || role === 'restaurant2' ? (
+      {role !== 'driver' && <Header role={role} setRole={setRole} />}
+      <main className={role === 'driver' ? 'w-full max-w-md mx-auto px-4 pt-4' : 'max-w-5xl mx-auto px-8 pt-8'}>
+        {role === 'driver' ? (
+          <DriverDashboard drivers={drivers} updateDriver={updateDriver} />
+        ) : role === 'restaurant1' || role === 'restaurant2' ? (
           <RestaurantDashboard 
             drivers={drivers.filter(d => d.restaurantId === role || (!d.restaurantId && role === 'restaurant1'))} 
             updateDriver={updateDriver} 
+            themeColor={role === 'restaurant1' ? 'orange' : 'rose'}
           />
         ) : (
           <CentralDashboard drivers={drivers} updateDriver={updateDriver} addDriver={addDriver} deleteDriver={deleteDriver} />
