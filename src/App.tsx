@@ -19,6 +19,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('delivery_role') as 'restaurant1' | 'restaurant2' | 'central' | 'driver' | null;
@@ -32,6 +33,13 @@ export default function App() {
     setIsReady(true);
 
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    
+    const checkStandalone = () => {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone || document.referrer.includes('android-app://');
+      setIsStandalone(!!isStandaloneMode);
+    };
+    checkStandalone();
+    window.matchMedia('(display-mode: standalone)').addEventListener('change', checkStandalone);
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -215,7 +223,7 @@ export default function App() {
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
-            {isMobile && deferredPrompt && activePendingRole === 'driver' && (
+            {isMobile && !isStandalone && deferredPrompt && activePendingRole === 'driver' && (
               <div className="mt-4 pt-4 border-t border-gray-100 text-center">
                 <button 
                   type="button"
@@ -312,7 +320,7 @@ export default function App() {
         )}
       </main>
       
-      {isMobile && role === 'driver' && (
+      {isMobile && !isStandalone && role === 'driver' && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-50">
           <div className="max-w-md mx-auto">
             <button 
