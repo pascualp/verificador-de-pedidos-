@@ -4,7 +4,18 @@ import { User, CheckCircle, Clock, MapPin, Package, RotateCcw } from 'lucide-rea
 import { TimeElapsed } from './TimeElapsed';
 
 export function DriverDashboard({ drivers, updateDriver }: { drivers: Driver[], updateDriver: (d: Driver) => void }) {
-  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
+  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(() => {
+    return localStorage.getItem('dumoh_selected_driver') || null;
+  });
+
+  const handleSelectDriver = (id: string | null) => {
+    setSelectedDriverId(id);
+    if (id) {
+      localStorage.setItem('dumoh_selected_driver', id);
+    } else {
+      localStorage.removeItem('dumoh_selected_driver');
+    }
+  };
 
   const selectedDriver = drivers.find(d => d.id === selectedDriverId);
 
@@ -30,7 +41,7 @@ export function DriverDashboard({ drivers, updateDriver }: { drivers: Driver[], 
           {drivers.map(driver => (
             <button
               key={driver.id}
-              onClick={() => setSelectedDriverId(driver.id)}
+              onClick={() => handleSelectDriver(driver.id)}
               className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between hover:border-cyan-500 transition-all group"
             >
               <div className="flex items-center gap-3">
@@ -54,7 +65,7 @@ export function DriverDashboard({ drivers, updateDriver }: { drivers: Driver[], 
   return (
     <div className="flex flex-col gap-6 max-w-md mx-auto">
       <button 
-        onClick={() => setSelectedDriverId(null)}
+        onClick={() => handleSelectDriver(null)}
         className="text-gray-500 text-sm font-medium flex items-center gap-1 hover:text-gray-900"
       >
         <RotateCcw className="w-4 h-4" />

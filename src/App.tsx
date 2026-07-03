@@ -70,6 +70,13 @@ export default function App() {
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
       }
+    } else {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      if (isIOS) {
+        alert("En iPhone/iPad, Apple bloquea la instalación directa mediante botones. Debes presionar 'Compartir' en Safari (el ícono del cuadrado con flecha) y luego 'Agregar a inicio'.");
+      } else {
+        alert("La aplicación ya está instalada o tu navegador no permite instalarla automáticamente.");
+      }
     }
   };
 
@@ -305,7 +312,7 @@ export default function App() {
         )}
       </main>
       
-      {isMobile && deferredPrompt && role === 'driver' && (
+      {isMobile && role === 'driver' && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-50">
           <div className="max-w-md mx-auto">
             <button 
