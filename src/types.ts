@@ -13,3 +13,18 @@ export interface Driver {
   isHidden?: boolean;
 }
 
+export type OrderStatus = 'En Cola' | 'Asignado' | 'Entregado';
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerPhone: string;
+  restaurantId: string;
+  status: OrderStatus;
+  address?: string;
+  driverId?: string;
+  createdAt: string;
+  assignedAt?: string;
+}
+

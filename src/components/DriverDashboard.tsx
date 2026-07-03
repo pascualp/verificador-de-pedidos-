@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Driver } from '../types';
-import { User, CheckCircle, Clock, MapPin, Package, RotateCcw } from 'lucide-react';
+import { Driver, Order } from '../types';
+import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft } from 'lucide-react';
 import { TimeElapsed } from './TimeElapsed';
 
-export function DriverDashboard({ drivers, updateDriver }: { drivers: Driver[], updateDriver: (d: Driver) => void }) {
+export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, onBack }: { drivers: Driver[], updateDriver: (d: Driver) => void, orders?: Order[], updateOrder?: (o: Order) => void, onBack: () => void }) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(() => {
     return localStorage.getItem('dumoh_selected_driver') || null;
   });
@@ -27,11 +27,27 @@ export function DriverDashboard({ drivers, updateDriver }: { drivers: Driver[], 
       totalOrders: (driver.totalOrders || 0) + driver.activeOrders,
       lastUpdated: new Date().toISOString()
     });
+    
+    if (orders && updateOrder) {
+      orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').forEach(o => {
+        updateOrder({
+          ...o,
+          status: 'Entregado'
+        });
+      });
+    }
   };
 
   if (!selectedDriverId) {
     return (
       <div className="flex flex-col gap-6 max-w-md mx-auto">
+        <button 
+          onClick={onBack}
+          className="text-gray-500 text-sm font-medium flex items-center gap-1 hover:text-gray-900 w-fit"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Volver
+        </button>
         <div className="text-center">
           <h2 className="text-2xl font-black text-gray-900">Panel de Repartidor</h2>
           <p className="text-gray-500 mt-1">Selecciona tu nombre para continuar</p>
@@ -105,6 +121,57 @@ export function DriverDashboard({ drivers, updateDriver }: { drivers: Driver[], 
                   </div>
                 </div>
               </div>
+
+              {orders && orders.filter(o => o.driverId === selectedDriver.id && o.status === 'Asignado').length > 0 && (
+                <div className="mt-2 border-t border-gray-100 pt-4">
+                  <h3 className="text-sm font-bold text-gray-900 mb-3">Detalle de Pedidos:</h3>
+                  <div className="flex flex-col gap-3">
+                    {orders.filter(o => o.driverId === selectedDriver.id && o.status === 'Asignado').map(order => (
+                      <div key={order.id} className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm flex flex-col gap-3">
+                        <div className="flex justify-between items-start">
+                          <span className="font-black text-xl text-gray-900">#{order.orderNumber}</span>
+                          <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded">
+                            <TimeElapsed startTime={order.assignedAt || order.createdAt} />
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-gray-800 font-bold">
+                            <User className="w-4 h-4 text-gray-400" />
+                            {order.customerName}
+                          </div>
+                          {order.customerPhone && (
+                            <a href={`tel:${order.customerPhone}`} className="flex items-center gap-2 text-cyan-600 font-medium text-sm hover:underline">
+                              <span className="bg-cyan-50 p-1 rounded-full">
+                                <RotateCcw className="w-3 h-3 -rotate-90" /> {/* Using RotateCcw as a phone-ish icon placeholder or similar if needed, but better just text */}
+                              </span>
+                              {order.customerPhone}
+                            </a>
+                          )}
+                        </div>
+
+                        {order.address && (
+                          <div className="flex flex-col gap-2 mt-1 border-t border-gray-50 pt-3">
+                            <div className="flex items-start gap-2 text-sm text-gray-700 font-medium">
+                              <MapPin className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
+                              {order.address}
+                            </div>
+                            <a 
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full bg-rose-50 text-rose-600 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors border border-rose-100"
+                            >
+                              <MapPin className="w-4 h-4" />
+                              VER EN GPS
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={() => handleMarkAsFree(selectedDriver)}

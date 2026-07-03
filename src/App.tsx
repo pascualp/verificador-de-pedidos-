@@ -3,7 +3,7 @@ import { Header } from './components/Header';
 import { RestaurantDashboard } from './components/RestaurantDashboard';
 import { CentralDashboard } from './components/CentralDashboard';
 import { DriverDashboard } from './components/DriverDashboard';
-import { Driver } from './types';
+import { Driver, Order } from './types';
 import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff, Bike, Download } from 'lucide-react';
 import { db } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -12,6 +12,7 @@ export default function App() {
   const [role, setRole] = useState<'restaurant1' | 'restaurant2' | 'central' | 'driver' | null>(null);
   const [appMode, setAppMode] = useState<'restaurant' | 'central' | 'driver' | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [pendingRole, setPendingRole] = useState<'restaurant' | 'central' | 'driver' | null>(null);
   const [password, setPassword] = useState('');
@@ -48,7 +49,7 @@ export default function App() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    const unsubscribe = onSnapshot(collection(db, 'drivers'), (snapshot) => {
+    const unsubscribeDrivers = onSnapshot(collection(db, 'drivers'), (snapshot) => {
       const driversData: Driver[] = [];
       snapshot.forEach((doc) => {
         driversData.push(doc.data() as Driver);
@@ -56,17 +57,21 @@ export default function App() {
       setDrivers(driversData);
     }, (error) => {
       console.error("Firestore error in snapshot listener:", error);
-      const errInfo = {
-        error: error instanceof Error ? error.message : String(error),
-        operationType: 'list',
-        path: 'drivers',
-        authInfo: {}
-      };
-      console.error('Firestore Error: ', JSON.stringify(errInfo));
+    });
+
+    const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+      const ordersData: Order[] = [];
+      snapshot.forEach((doc) => {
+        ordersData.push(doc.data() as Order);
+      });
+      setOrders(ordersData);
+    }, (error) => {
+      console.error("Firestore error in orders snapshot listener:", error);
     });
 
     return () => {
-      unsubscribe();
+      unsubscribeDrivers();
+      unsubscribeOrders();
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
@@ -96,6 +101,14 @@ export default function App() {
     }
   };
 
+  const updateOrder = async (updatedOrder: Order) => {
+    try {
+      await setDoc(doc(db, 'orders', updatedOrder.id), updatedOrder);
+    } catch (e) {
+      console.error("Error updating order: ", e);
+    }
+  };
+
   const deleteDriver = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'drivers', id));
@@ -121,7 +134,25 @@ export default function App() {
     }
   };
 
-  const handleSelectRoleClick = (selectedRole: 'restaurant' | 'central') => {
+  const addOrder = async (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string = '') => {
+    const newOrder: Order = {
+      id: crypto.randomUUID(),
+      orderNumber,
+      customerName,
+      customerPhone,
+      restaurantId,
+      address,
+      status: 'En Cola',
+      createdAt: new Date().toISOString()
+    };
+    try {
+      await setDoc(doc(db, 'orders', newOrder.id), newOrder);
+    } catch (e) {
+      console.error("Error adding order: ", e);
+    }
+  };
+
+  const handleSelectRoleClick = (selectedRole: 'restaurant' | 'central' | 'driver') => {
     setPendingRole(selectedRole);
     setPassword('');
     setError('');
@@ -308,15 +339,28 @@ export default function App() {
       {role !== 'driver' && <Header role={role} setRole={setRole} />}
       <main className={role === 'driver' ? 'w-full max-w-md mx-auto px-4 pt-4 pb-20' : 'max-w-5xl mx-auto px-8 pt-8'}>
         {role === 'driver' ? (
-          <DriverDashboard drivers={drivers} updateDriver={updateDriver} />
+          <DriverDashboard 
+            drivers={drivers} 
+            updateDriver={updateDriver} 
+            orders={orders} 
+            updateOrder={updateOrder} 
+            onBack={() => {
+              localStorage.removeItem('delivery_role');
+              setRole(null);
+            }}
+          />
         ) : role === 'restaurant1' || role === 'restaurant2' ? (
           <RestaurantDashboard 
             drivers={drivers.filter(d => (d.restaurantId === role || (!d.restaurantId && role === 'restaurant1')) && !d.isHidden)} 
             updateDriver={updateDriver} 
             themeColor={role === 'restaurant1' ? 'orange' : 'rose'}
+            orders={orders.filter(o => o.restaurantId === role)}
+            updateOrder={updateOrder}
+            addOrder={addOrder}
+            restaurantId={role}
           />
         ) : (
-          <CentralDashboard drivers={drivers} updateDriver={updateDriver} addDriver={addDriver} deleteDriver={deleteDriver} />
+          <CentralDashboard drivers={drivers} updateDriver={updateDriver} addDriver={addDriver} deleteDriver={deleteDriver} orders={orders} updateOrder={updateOrder} />
         )}
       </main>
       
