@@ -19,6 +19,8 @@ export default function App() {
   const [error, setError] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
   useEffect(() => {
     const savedRole = localStorage.getItem('delivery_role') as 'restaurant1' | 'restaurant2' | 'central' | 'driver' | null;
@@ -70,6 +72,8 @@ export default function App() {
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
       }
+    } else {
+      setShowInstallHelp(true);
     }
   };
 
@@ -208,7 +212,7 @@ export default function App() {
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
-            {isMobile && deferredPrompt && activePendingRole === 'driver' && (
+            {isMobile && activePendingRole === 'driver' && (
               <div className="mt-4 pt-4 border-t border-gray-100 text-center">
                 <button 
                   type="button"
@@ -305,7 +309,7 @@ export default function App() {
         )}
       </main>
       
-      {isMobile && deferredPrompt && role === 'driver' && (
+      {isMobile && role === 'driver' && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-50">
           <div className="max-w-md mx-auto">
             <button 
@@ -315,6 +319,47 @@ export default function App() {
             >
               <Download className="w-5 h-5" />
               Anclar App al Inicio
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showInstallHelp && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm relative shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            <button onClick={() => setShowInstallHelp(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="text-center mb-4">
+              <div className="bg-cyan-100 p-3 rounded-full inline-block mb-3">
+                <Download className="w-8 h-8 text-cyan-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Instalar Dumoh</h3>
+            </div>
+            {isIOS ? (
+              <div className="space-y-4 text-gray-600 text-sm">
+                <p>Para instalar la aplicación en tu iPhone o iPad:</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>Toca el botón <strong>Compartir</strong> en la barra de navegación de Safari (el cuadrado con la flecha hacia arriba).</li>
+                  <li>Desplázate hacia abajo y selecciona <strong>Agregar a inicio</strong>.</li>
+                  <li>Toca <strong>Agregar</strong> en la esquina superior derecha.</li>
+                </ol>
+              </div>
+            ) : (
+              <div className="space-y-4 text-gray-600 text-sm">
+                <p>Para instalar la aplicación en tu dispositivo Android:</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>Toca el botón de <strong>Menú</strong> en tu navegador (los tres puntos en la esquina superior derecha).</li>
+                  <li>Selecciona <strong>Instalar aplicación</strong> o <strong>Agregar a la pantalla principal</strong>.</li>
+                  <li>Sigue las instrucciones en pantalla.</li>
+                </ol>
+              </div>
+            )}
+            <button 
+              onClick={() => setShowInstallHelp(false)}
+              className="mt-6 w-full bg-cyan-500 text-white py-3 rounded-lg font-bold hover:bg-cyan-600 transition-colors"
+            >
+              Entendido
             </button>
           </div>
         </div>
