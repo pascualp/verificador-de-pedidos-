@@ -6,6 +6,13 @@
     <meta name="theme-color" content="#06b6d4" />
     <link rel="manifest" href="/manifest.json" />
     <title>Dumoh Delivery</title>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

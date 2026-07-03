@@ -10,4 +10,6 @@ export interface Driver {
   lastUpdated: string;
   scheduledDays?: DayOfWeek[];
   restaurantId: string;
+  isHidden?: boolean;
 }
+

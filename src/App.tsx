@@ -4,7 +4,7 @@ import { RestaurantDashboard } from './components/RestaurantDashboard';
 import { CentralDashboard } from './components/CentralDashboard';
 import { DriverDashboard } from './components/DriverDashboard';
 import { Driver } from './types';
-import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff, Bike } from 'lucide-react';
+import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff, Bike, Download } from 'lucide-react';
 import { db } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
@@ -17,6 +17,8 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const savedRole = localStorage.getItem('delivery_role') as 'restaurant1' | 'restaurant2' | 'central' | 'driver' | null;
@@ -28,6 +30,15 @@ export default function App() {
       setAppMode(savedAppMode);
     }
     setIsReady(true);
+
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     const unsubscribe = onSnapshot(collection(db, 'drivers'), (snapshot) => {
       const driversData: Driver[] = [];
@@ -46,8 +57,21 @@ export default function App() {
       console.error('Firestore Error: ', JSON.stringify(errInfo));
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    }
+  };
 
   const updateDriver = async (updatedDriver: Driver) => {
     try {
@@ -184,8 +208,20 @@ export default function App() {
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
+            {isMobile && deferredPrompt && activePendingRole === 'driver' && (
+              <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+                <button 
+                  type="button"
+                  onClick={handleInstallClick}
+                  className="flex items-center justify-center gap-2 w-full bg-white border border-gray-200 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Anclar App al Inicio
+                </button>
+              </div>
+            )}
             {appMode && (
-              <div className="mt-6 text-center">
+              <div className="mt-4 text-center">
                 <button 
                   type="button"
                   onClick={() => {
@@ -255,12 +291,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans pb-12">
       {role !== 'driver' && <Header role={role} setRole={setRole} />}
-      <main className={role === 'driver' ? 'w-full max-w-md mx-auto px-4 pt-4' : 'max-w-5xl mx-auto px-8 pt-8'}>
+      <main className={role === 'driver' ? 'w-full max-w-md mx-auto px-4 pt-4 pb-20' : 'max-w-5xl mx-auto px-8 pt-8'}>
         {role === 'driver' ? (
           <DriverDashboard drivers={drivers} updateDriver={updateDriver} />
         ) : role === 'restaurant1' || role === 'restaurant2' ? (
           <RestaurantDashboard 
-            drivers={drivers.filter(d => d.restaurantId === role || (!d.restaurantId && role === 'restaurant1'))} 
+            drivers={drivers.filter(d => (d.restaurantId === role || (!d.restaurantId && role === 'restaurant1')) && !d.isHidden)} 
             updateDriver={updateDriver} 
             themeColor={role === 'restaurant1' ? 'orange' : 'rose'}
           />
@@ -268,6 +304,21 @@ export default function App() {
           <CentralDashboard drivers={drivers} updateDriver={updateDriver} addDriver={addDriver} deleteDriver={deleteDriver} />
         )}
       </main>
+      
+      {isMobile && deferredPrompt && role === 'driver' && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-50">
+          <div className="max-w-md mx-auto">
+            <button 
+              type="button"
+              onClick={handleInstallClick}
+              className="flex items-center justify-center gap-2 w-full bg-cyan-500 text-white py-3 rounded-xl font-bold hover:bg-cyan-600 transition-colors shadow-sm"
+            >
+              <Download className="w-5 h-5" />
+              Anclar App al Inicio
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -73,9 +73,10 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
                 <div className="p-6 text-center text-gray-500 text-sm bg-white/50">No hay repartidores en ruta.</div>
               ) : (
                 active.map(driver => (
-                  <div key={driver.id} className="flex flex-col hover:bg-white/80 bg-white/40 transition-colors group border-b border-gray-100 last:border-b-0">
-                    <div className="px-4 py-2.5 text-white text-sm font-black tracking-widest uppercase shadow-sm bg-cyan-500">
-                      {driver.name}
+                  <div key={driver.id} className={`flex flex-col hover:bg-white/80 transition-colors group border-b border-gray-100 last:border-b-0 ${driver.isHidden ? 'bg-gray-50' : 'bg-white/40'}`}>
+                    <div className={`px-4 py-2.5 text-white text-sm font-black tracking-widest uppercase shadow-sm flex items-center justify-between ${driver.isHidden ? 'bg-gray-400' : 'bg-cyan-500'}`}>
+                      <span>{driver.name}</span>
+                      {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
                     </div>
                     <div className="p-4 flex items-center justify-between">
                       <div className="min-w-0 flex-1">
@@ -95,6 +96,9 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
                           <div className="font-medium flex items-center gap-2">
                             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                               <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => updateDriver({ ...driver, isHidden: !driver.isHidden })} className={`transition-colors ${driver.isHidden ? 'text-gray-400 hover:text-gray-600' : 'text-gray-400 hover:text-cyan-600'}`} title={driver.isHidden ? "Mostrar a restaurantes" : "Ocultar a restaurantes"}>
+                                {driver.isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
                               <button onClick={() => { if(window.confirm(`¿Eliminar a ${driver.name}?`)) deleteDriver(driver.id); }} className="text-gray-400 hover:text-red-500 transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
                           </div>
@@ -136,9 +140,10 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
                 <div className="p-6 text-center text-gray-500 text-sm bg-white/50">No hay repartidores libres.</div>
               ) : (
                 free.map(driver => (
-                  <div key={driver.id} className="flex flex-col hover:bg-white/80 bg-white/40 transition-colors group border-b border-gray-100 last:border-b-0">
-                    <div className="px-4 py-2.5 text-white text-sm font-black tracking-widest uppercase shadow-sm bg-cyan-500">
-                      {driver.name}
+                  <div key={driver.id} className={`flex flex-col hover:bg-white/80 transition-colors group border-b border-gray-100 last:border-b-0 ${driver.isHidden ? 'bg-gray-50' : 'bg-white/40'}`}>
+                    <div className={`px-4 py-2.5 text-white text-sm font-black tracking-widest uppercase shadow-sm flex items-center justify-between ${driver.isHidden ? 'bg-gray-400' : 'bg-cyan-500'}`}>
+                      <span>{driver.name}</span>
+                      {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
                     </div>
                     <div className="p-4 flex items-center justify-between">
                       <div className="min-w-0 flex-1">
@@ -158,6 +163,9 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
                           <div className="font-medium flex items-center gap-2">
                             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                               <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => updateDriver({ ...driver, isHidden: !driver.isHidden })} className={`transition-colors ${driver.isHidden ? 'text-gray-400 hover:text-gray-600' : 'text-gray-400 hover:text-cyan-600'}`} title={driver.isHidden ? "Mostrar a restaurantes" : "Ocultar a restaurantes"}>
+                                {driver.isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
                               <button onClick={() => { if(window.confirm(`¿Eliminar a ${driver.name}?`)) deleteDriver(driver.id); }} className="text-gray-400 hover:text-red-500 transition-colors" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
                           </div>
