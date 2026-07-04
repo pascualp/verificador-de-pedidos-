@@ -3,13 +3,14 @@ import { Driver, Order } from '../types';
 import { User, RotateCcw, Clock, Plus, MapPin, Trash2 } from 'lucide-react';
 import { TimeElapsed } from './TimeElapsed';
 
-export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
+export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
   const [orderInputs, setOrderInputs] = useState<Record<string, string>>({});
   
   // New order form state
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
+  const [newPrepTime, setNewPrepTime] = useState('');
   const [isAddingOrder, setIsAddingOrder] = useState(false);
 
   const handleAddOrder = (e: FormEvent) => {
@@ -20,10 +21,11 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
       const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1000;
       const generatedOrderNumber = nextNumber.toString();
 
-      addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress);
+      addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress, newPrepTime ? parseInt(newPrepTime, 10) : undefined);
       setNewCustomerName('');
       setNewCustomerPhone('');
       setNewCustomerAddress('');
+      setNewPrepTime('');
       setIsAddingOrder(false);
     }
   };
@@ -68,18 +70,16 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
             <h1 className="text-2xl font-bold tracking-tight">Panel de Restaurante</h1>
             <p className="text-gray-500 text-sm mt-1">Gestión de pedidos y repartidores.</p>
           </div>
-          {restaurantId === 'restaurant2' && (
-            <button
-              onClick={() => setIsAddingOrder(!isAddingOrder)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${themeColor === 'orange' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'}`}
-            >
-              <Plus className="w-5 h-5" />
-              Nuevo Pedido
-            </button>
-          )}
+          <button
+            onClick={() => setIsAddingOrder(!isAddingOrder)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${themeColor === 'orange' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'}`}
+          >
+            <Plus className="w-5 h-5" />
+            Nuevo Pedido
+          </button>
         </div>
 
-        {isAddingOrder && restaurantId === 'restaurant2' && (
+        {isAddingOrder && (
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
             <h3 className="text-lg font-bold mb-4">Ingresar Nuevo Pedido</h3>
             <form onSubmit={handleAddOrder} className="flex flex-col md:flex-row gap-4 items-end">
@@ -113,6 +113,17 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                   placeholder="Calle, Número, Localidad..."
                 />
               </div>
+              <div className="w-24 shrink-0">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">T. Prep (min)</label>
+                <input 
+                  type="number"
+                  min="1"
+                  value={newPrepTime}
+                  onChange={(e) => setNewPrepTime(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-center"
+                  placeholder="Ej: 15"
+                />
+              </div>
               <div className="w-full md:w-auto">
                 <button type="submit" className={`w-full md:w-auto px-6 py-2.5 rounded-lg font-bold text-white transition-colors ${themeColor === 'orange' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-rose-600 hover:bg-rose-700'}`}>
                   Generar Pedido
@@ -130,7 +141,13 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {orders.filter(o => o.status === 'En Cola').map(order => (
-                <div key={order.id} className="bg-white p-4 rounded-xl border border-orange-200 shadow-sm">
+                <div key={order.id} className="bg-white p-4 rounded-xl border border-orange-200 shadow-sm relative">
+                  {order.prepTime && (
+                    <div className="absolute -top-2.5 -right-2.5 bg-yellow-100 text-yellow-800 border border-yellow-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {order.prepTime} min
+                    </div>
+                  )}
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-black text-lg">#{order.orderNumber}</span>
                     <span className="text-xs text-gray-500"><TimeElapsed startTime={order.createdAt} /></span>
@@ -232,7 +249,12 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                   {driver.status === 'Repartiendo' && (
                     <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded-md text-center flex flex-col items-center justify-center gap-1 mb-1">
                       <div>Llevando <strong>{driver.activeOrders}</strong> {driver.activeOrders === 1 ? 'pedido' : 'pedidos'}</div>
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                      {orders && orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').length > 0 && (
+                        <div className="text-xs font-bold text-cyan-600 my-0.5">
+                          #{orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').map(o => o.orderNumber).join(', #')}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
                         <Clock className="w-3 h-3" />
                         Hace: <TimeElapsed startTime={driver.lastUpdated} />
                       </div>

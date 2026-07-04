@@ -57,5 +57,6 @@ export interface Order {
   driverId?: string;
   createdAt: string;
   assignedAt?: string;
+  prepTime?: number;
 }
 

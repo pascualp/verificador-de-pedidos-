@@ -191,7 +191,7 @@ export default function App() {
     }
   };
 
-  const addOrder = async (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string = '') => {
+  const addOrder = async (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string = '', prepTime?: number) => {
     const newOrder: Order = {
       id: crypto.randomUUID(),
       orderNumber,
@@ -200,7 +200,8 @@ export default function App() {
       restaurantId,
       address,
       status: 'En Cola',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      prepTime
     };
     try {
       await setDoc(doc(db, 'orders', newOrder.id), newOrder);

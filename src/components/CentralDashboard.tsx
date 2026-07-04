@@ -81,6 +81,41 @@ export function CentralDashboard({
         </div>
         
         <div className={`flex flex-col gap-6 transition-all duration-300 ${isHidden ? 'opacity-40 blur-[1px] grayscale hover:opacity-100 hover:blur-none hover:grayscale-0' : ''}`}>
+          
+          <div className={`rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col ${containerColors[themeColor]}`}>
+            <div className="bg-orange-50 border-b border-orange-100 p-4">
+              <h3 className="font-semibold text-orange-900 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-orange-600" />
+                En Cola ({orders?.filter(o => o.restaurantId === restId && o.status === 'En Cola').length || 0})
+              </h3>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {(!orders || orders.filter(o => o.restaurantId === restId && o.status === 'En Cola').length === 0) ? (
+                <div className="p-6 text-center text-gray-500 text-sm bg-white/50">No hay pedidos en cola.</div>
+              ) : (
+                <div className="p-4 grid grid-cols-2 gap-3 bg-white/40">
+                  {orders.filter(o => o.restaurantId === restId && o.status === 'En Cola').map(order => (
+                    <div key={order.id} className="bg-white p-3 rounded-xl border border-orange-200 shadow-sm relative flex flex-col">
+                      {order.prepTime && (
+                        <div className="absolute -top-2.5 -right-2.5 bg-yellow-100 text-yellow-800 border border-yellow-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {order.prepTime} min
+                        </div>
+                      )}
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-black text-lg text-gray-800">#{order.orderNumber}</span>
+                        <span className="text-xs text-gray-500"><TimeElapsed startTime={order.createdAt} /></span>
+                      </div>
+                      {order.customerName && (
+                        <div className="text-sm font-medium text-gray-700 truncate">{order.customerName}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className={`rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col ${containerColors[themeColor]}`}>
             <div className="bg-blue-50 border-b border-blue-100 p-4">
               <h3 className="font-semibold text-blue-900 flex items-center gap-2">
