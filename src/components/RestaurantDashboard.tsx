@@ -7,6 +7,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
   const [orderInputs, setOrderInputs] = useState<Record<string, string>>({});
   
   // New order form state
+  const [newOrderNumber, setNewOrderNumber] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
@@ -16,12 +17,16 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
   const handleAddOrder = (e: FormEvent) => {
     e.preventDefault();
     if (restaurantId && addOrder) {
-      // Auto-generar número de pedido
-      const existingNumbers = (orders || []).map(o => parseInt(o.orderNumber, 10)).filter(n => !isNaN(n));
-      const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1000;
-      const generatedOrderNumber = nextNumber.toString();
+      // Usar número provisto o auto-generar número de pedido
+      let generatedOrderNumber = newOrderNumber.trim();
+      if (!generatedOrderNumber) {
+        const existingNumbers = (orders || []).map(o => parseInt(o.orderNumber, 10)).filter(n => !isNaN(n));
+        const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1000;
+        generatedOrderNumber = nextNumber.toString();
+      }
 
       addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress, newPrepTime ? parseInt(newPrepTime, 10) : undefined);
+      setNewOrderNumber('');
       setNewCustomerName('');
       setNewCustomerPhone('');
       setNewCustomerAddress('');
@@ -83,6 +88,16 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
             <h3 className="text-lg font-bold mb-4">Ingresar Nuevo Pedido</h3>
             <form onSubmit={handleAddOrder} className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="w-24 shrink-0">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Nº Pedido</label>
+                <input 
+                  type="text"
+                  value={newOrderNumber}
+                  onChange={(e) => setNewOrderNumber(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-center font-bold"
+                  placeholder="Auto"
+                />
+              </div>
               <div className="flex-1 w-full">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Cliente (Opcional)</label>
                 <input 
