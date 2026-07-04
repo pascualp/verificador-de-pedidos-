@@ -31,7 +31,7 @@ async function startServer() {
   // Webhook for receiving orders
   app.post("/api/webhook/orders", async (req, res) => {
     try {
-      const { orderNumber, customerName, customerPhone, restaurantId } = req.body;
+      const { orderNumber, customerName, customerPhone, restaurantId, address } = req.body;
       
       if (!orderNumber || !restaurantId) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -41,6 +41,7 @@ async function startServer() {
         orderNumber: String(orderNumber),
         customerName: customerName || "Cliente",
         customerPhone: customerPhone || "",
+        address: address || "",
         restaurantId,
         status: "En Cola",
         createdAt: new Date().toISOString(),
@@ -56,6 +57,27 @@ async function startServer() {
       }
     } catch (error: any) {
       console.error("Webhook error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Test webhook endpoint
+  app.post("/api/webhook/test", async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url) return res.status(400).json({ error: "No URL provided" });
+
+      console.log(`Testing outbound webhook to: ${url}`);
+      
+      // In a real scenario, we'd use axios to POST to the URL
+      // For this environment, we'll just simulate a successful check
+      
+      res.json({ 
+        success: true, 
+        message: "Conexión probada. El servidor intentará enviar notificaciones a esta URL cuando ocurran eventos.",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });

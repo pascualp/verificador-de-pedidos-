@@ -1,11 +1,30 @@
-import { Driver, Order } from '../types';
-import { Package, MapPin, Clock, User, Plus, Edit2, Trash2, Check, X, TreePalm, Pizza, Zap, Eye, EyeOff } from 'lucide-react';
+import { AppConfig, Driver, Order } from '../types';
+import { Package, MapPin, Clock, User, Plus, Edit2, Trash2, Check, X, TreePalm, Pizza, Zap, Eye, EyeOff, Webhook } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
 import { TimeElapsed } from './TimeElapsed';
+import { WebhookSettings } from './WebhookSettings';
 
-export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDriver, orders, updateOrder }: { drivers: Driver[], updateDriver: (d: Driver) => void, addDriver: (name: string, restaurantId: string) => void, deleteDriver: (id: string) => void, orders?: Order[], updateOrder?: (o: Order) => void }) {
+export function CentralDashboard({ 
+  drivers, 
+  updateDriver, 
+  addDriver, 
+  deleteDriver, 
+  orders, 
+  updateOrder,
+  appConfig,
+  updateAppConfig
+}: { 
+  drivers: Driver[], 
+  updateDriver: (d: Driver) => void, 
+  addDriver: (name: string, restaurantId: string) => void, 
+  deleteDriver: (id: string) => void, 
+  orders?: Order[], 
+  updateOrder?: (o: Order) => void,
+  appConfig: AppConfig,
+  updateAppConfig: (config: AppConfig) => void
+}) {
   const activeDrivers = drivers.filter(d => d.status === 'Repartiendo');
   const totalActiveOrders = activeDrivers.reduce((sum, d) => sum + d.activeOrders, 0);
 
@@ -14,6 +33,7 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [hiddenRestaurants, setHiddenRestaurants] = useState<Record<string, boolean>>({});
+  const [currentView, setCurrentView] = useState<'dashboard' | 'webhooks'>('dashboard');
 
   const toggleVisibility = (restId: string) => {
     setHiddenRestaurants(prev => ({ ...prev, [restId]: !prev[restId] }));
@@ -218,25 +238,44 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
         </div>
         
         <div className="flex flex-wrap gap-4 items-end">
-          <div className="bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm">
-            <div className="text-xs text-gray-500 font-medium">Repartidores Activos</div>
-            <div className="text-xl font-bold">{activeDrivers.length} / {drivers.length}</div>
+          <div className="flex bg-white border border-gray-200 p-1 rounded-xl shadow-sm h-[42px] items-center">
+            <button 
+              onClick={() => setCurrentView('dashboard')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${currentView === 'dashboard' ? 'bg-cyan-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Dashboard
+            </button>
+            <button 
+              onClick={() => setCurrentView('webhooks')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${currentView === 'webhooks' ? 'bg-cyan-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <Webhook className="w-4 h-4" />
+              Webhooks
+            </button>
           </div>
-          <div className="bg-cyan-500 text-white px-4 py-2 rounded-lg shadow-sm">
-            <div className="text-xs text-white/80 font-medium">Total Pedidos en Ruta</div>
-            <div className="text-xl font-bold">{totalActiveOrders}</div>
+          
+          <div className="bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm h-[42px] flex flex-col justify-center">
+            <div className="text-[10px] text-gray-500 font-medium uppercase tracking-wider leading-tight">Repartidores Activos</div>
+            <div className="text-lg font-black leading-tight">{activeDrivers.length} / {drivers.length}</div>
           </div>
-          <button 
-            onClick={() => setShowAddForm(!showAddForm)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all shadow-sm ${showAddForm ? 'bg-gray-800 text-white hover:bg-gray-900' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
-          >
-            {showAddForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-            {showAddForm ? 'Cerrar' : 'Añadir Repartidor'}
-          </button>
+          
+          {currentView === 'dashboard' && (
+            <button 
+              onClick={() => setShowAddForm(!showAddForm)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all shadow-sm h-[42px] ${showAddForm ? 'bg-gray-800 text-white hover:bg-gray-900' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+            >
+              {showAddForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+              {showAddForm ? 'Cerrar' : 'Añadir Repartidor'}
+            </button>
+          )}
         </div>
       </div>
 
-      {showAddForm && (
+      {currentView === 'webhooks' ? (
+        <WebhookSettings config={appConfig} onUpdate={updateAppConfig} />
+      ) : (
+        <>
+          {showAddForm && (
         <div className="bg-white border-2 border-cyan-100 p-6 rounded-2xl shadow-md animate-in fade-in slide-in-from-top-4 duration-300">
           <form 
             onSubmit={(e) => { 
@@ -309,7 +348,8 @@ export function CentralDashboard({ drivers, updateDriver, addDriver, deleteDrive
           </div>
         </div>
       )}
-
+      </>
+      )}
     </div>
   );
 }

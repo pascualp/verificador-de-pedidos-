@@ -1,8 +1,26 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Default deny
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
+    }
+
+    // Helper for valid IDs
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    match /drivers/{driverId} {
+      allow read, write: if true; // Temporary allow all until auth is implemented
+    }
+
+    match /orders/{orderId} {
+      allow read, write: if true; // Temporary allow all until auth is implemented
+    }
+
+    match /config/{configId} {
+      allow read, write: if true; // Temporary allow all until auth is implemented
     }
   }
 }

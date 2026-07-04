@@ -1,22 +1,61 @@
 {
-  "collections": [
-    {
-      "name": "drivers",
-      "description": "Store delivery drivers and their statuses",
-      "fields": {
-        "id": "string",
-        "name": "string",
-        "status": "string",
-        "activeOrders": "number",
-        "totalOrders": "number",
-        "lastUpdated": "string"
+  "entities": {
+    "Driver": {
+      "title": "Driver",
+      "description": "Represents a delivery driver",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["Libre", "Repartiendo"] },
+        "activeOrders": { "type": "number" },
+        "totalOrders": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" },
+        "restaurantId": { "type": "string" }
       },
-      "rules": [
-        {
-          "allow": "read, write",
-          "condition": "true"
-        }
-      ]
+      "required": ["id", "name", "status", "activeOrders", "totalOrders", "lastUpdated"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Represents a delivery order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "status": { "type": "string", "enum": ["En Cola", "Asignado", "Entregado"] },
+        "address": { "type": "string" },
+        "driverId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "assignedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orderNumber", "customerName", "restaurantId", "status", "createdAt"]
+    },
+    "AppConfig": {
+      "title": "AppConfig",
+      "description": "Application general configuration",
+      "type": "object",
+      "properties": {
+        "webhookUrl": { "type": "string" },
+        "webhookEnabled": { "type": "boolean" }
+      },
+      "required": ["webhookEnabled"]
     }
-  ]
+  },
+  "firestore": {
+    "/drivers/{driverId}": {
+      "schema": "Driver",
+      "description": "Collection of delivery drivers"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of delivery orders"
+    },
+    "/config/{configId}": {
+      "schema": "AppConfig",
+      "description": "Application configuration"
+    }
+  }
 }

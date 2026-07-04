@@ -1,13 +1,12 @@
 import { useState, FormEvent } from 'react';
 import { Driver, Order } from '../types';
-import { User, RotateCcw, Clock, Plus, MapPin } from 'lucide-react';
+import { User, RotateCcw, Clock, Plus, MapPin, Trash2 } from 'lucide-react';
 import { TimeElapsed } from './TimeElapsed';
 
-export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string) => void, restaurantId?: string }) {
+export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
   const [orderInputs, setOrderInputs] = useState<Record<string, string>>({});
   
   // New order form state
-  const [newOrderNumber, setNewOrderNumber] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
@@ -15,9 +14,13 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
 
   const handleAddOrder = (e: FormEvent) => {
     e.preventDefault();
-    if (newOrderNumber && restaurantId && addOrder) {
-      addOrder(newOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress);
-      setNewOrderNumber('');
+    if (restaurantId && addOrder) {
+      // Auto-generar número de pedido
+      const existingNumbers = (orders || []).map(o => parseInt(o.orderNumber, 10)).filter(n => !isNaN(n));
+      const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1000;
+      const generatedOrderNumber = nextNumber.toString();
+
+      addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress);
       setNewCustomerName('');
       setNewCustomerPhone('');
       setNewCustomerAddress('');
@@ -63,34 +66,25 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
         <div className="flex justify-between items-start md:items-end mb-4 flex-col md:flex-row gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Panel de Restaurante</h1>
-            <p className="text-gray-500 text-sm mt-1">Ingresa nuevos pedidos y asígnalos a los repartidores.</p>
+            <p className="text-gray-500 text-sm mt-1">Gestión de pedidos y repartidores.</p>
           </div>
-          <button
-            onClick={() => setIsAddingOrder(!isAddingOrder)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${themeColor === 'orange' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'}`}
-          >
-            <Plus className="w-5 h-5" />
-            Nuevo Pedido
-          </button>
+          {restaurantId === 'restaurant2' && (
+            <button
+              onClick={() => setIsAddingOrder(!isAddingOrder)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${themeColor === 'orange' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'}`}
+            >
+              <Plus className="w-5 h-5" />
+              Nuevo Pedido
+            </button>
+          )}
         </div>
 
-        {isAddingOrder && (
+        {isAddingOrder && restaurantId === 'restaurant2' && (
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
             <h3 className="text-lg font-bold mb-4">Ingresar Nuevo Pedido</h3>
             <form onSubmit={handleAddOrder} className="flex flex-col md:flex-row gap-4 items-end">
               <div className="flex-1 w-full">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Número de Pedido *</label>
-                <input 
-                  type="text" 
-                  required
-                  value={newOrderNumber}
-                  onChange={(e) => setNewOrderNumber(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-                  placeholder="Ej: 145"
-                />
-              </div>
-              <div className="flex-1 w-full">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Cliente</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Cliente (Opcional)</label>
                 <input 
                   type="text" 
                   value={newCustomerName}
@@ -110,7 +104,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                 />
               </div>
               <div className="flex-[2] w-full">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Dirección</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Dirección (Opcional)</label>
                 <input 
                   type="text" 
                   value={newCustomerAddress}
@@ -121,7 +115,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
               </div>
               <div className="w-full md:w-auto">
                 <button type="submit" className={`w-full md:w-auto px-6 py-2.5 rounded-lg font-bold text-white transition-colors ${themeColor === 'orange' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-rose-600 hover:bg-rose-700'}`}>
-                  Guardar Pedido
+                  Generar Pedido
                 </button>
               </div>
             </form>
@@ -183,6 +177,17 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                           <option key={d.id} value={d.id}>{d.name} {d.status === 'Repartiendo' ? `(${d.activeOrders} en curso)` : ''}</option>
                         ))}
                       </select>
+                      <button
+                        onClick={() => {
+                          if (deleteOrder && window.confirm('¿Estás seguro de eliminar este pedido?')) {
+                            deleteOrder(order.id);
+                          }
+                        }}
+                        className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg border border-transparent hover:border-red-200 transition-colors"
+                        title="Eliminar Pedido"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>

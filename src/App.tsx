@@ -3,16 +3,65 @@ import { Header } from './components/Header';
 import { RestaurantDashboard } from './components/RestaurantDashboard';
 import { CentralDashboard } from './components/CentralDashboard';
 import { DriverDashboard } from './components/DriverDashboard';
-import { Driver, Order } from './types';
+import { Driver, Order, AppConfig, OperationType, FirestoreErrorInfo } from './types';
 import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff, Bike, Download } from 'lucide-react';
 import { db } from './firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, getDocFromServer } from 'firebase/firestore';
 
 export default function App() {
+  const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
+    const errInfo: FirestoreErrorInfo = {
+      error: error instanceof Error ? error.message : String(error),
+      authInfo: {
+        userId: null, // Auth not implemented yet
+        email: null,
+        emailVerified: null,
+        isAnonymous: null,
+        tenantId: null,
+        providerInfo: []
+      },
+      operationType,
+      path
+    };
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    // We don't throw here to avoid crashing the app, but we log it for AI diagnosis
+  };
+
   const [role, setRole] = useState<'restaurant1' | 'restaurant2' | 'central' | 'driver' | null>(null);
   const [appMode, setAppMode] = useState<'restaurant' | 'central' | 'driver' | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [appConfig, setAppConfig] = useState<AppConfig>({ webhookEnabled: false });
+
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'config', 'connection_test'));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
+        }
+      }
+    };
+    testConnection();
+
+    const unsubscribeConfig = onSnapshot(doc(db, 'config', 'general'), (doc) => {
+      if (doc.exists()) {
+        setAppConfig(doc.data() as AppConfig);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'config/general');
+    });
+    return () => unsubscribeConfig();
+  }, []);
+
+  const updateAppConfig = async (newConfig: AppConfig) => {
+    try {
+      await setDoc(doc(db, 'config', 'general'), newConfig);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'config/general');
+    }
+  };
   const [isReady, setIsReady] = useState(false);
   const [pendingRole, setPendingRole] = useState<'restaurant' | 'central' | 'driver' | null>(null);
   const [password, setPassword] = useState('');
@@ -56,7 +105,7 @@ export default function App() {
       });
       setDrivers(driversData);
     }, (error) => {
-      console.error("Firestore error in snapshot listener:", error);
+      handleFirestoreError(error, OperationType.GET, 'drivers');
     });
 
     const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
@@ -66,7 +115,7 @@ export default function App() {
       });
       setOrders(ordersData);
     }, (error) => {
-      console.error("Firestore error in orders snapshot listener:", error);
+      handleFirestoreError(error, OperationType.GET, 'orders');
     });
 
     return () => {
@@ -97,7 +146,7 @@ export default function App() {
     try {
       await setDoc(doc(db, 'drivers', updatedDriver.id), updatedDriver);
     } catch (e) {
-      console.error("Error updating driver: ", e);
+      handleFirestoreError(e, OperationType.WRITE, `drivers/${updatedDriver.id}`);
     }
   };
 
@@ -105,7 +154,15 @@ export default function App() {
     try {
       await setDoc(doc(db, 'orders', updatedOrder.id), updatedOrder);
     } catch (e) {
-      console.error("Error updating order: ", e);
+      handleFirestoreError(e, OperationType.WRITE, `orders/${updatedOrder.id}`);
+    }
+  };
+
+  const deleteOrder = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'orders', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `orders/${id}`);
     }
   };
 
@@ -113,7 +170,7 @@ export default function App() {
     try {
       await deleteDoc(doc(db, 'drivers', id));
     } catch (e) {
-      console.error("Error deleting driver: ", e);
+      handleFirestoreError(e, OperationType.DELETE, `drivers/${id}`);
     }
   };
 
@@ -130,7 +187,7 @@ export default function App() {
     try {
       await setDoc(doc(db, 'drivers', newDriver.id), newDriver);
     } catch (e) {
-      console.error("Error adding driver: ", e);
+      handleFirestoreError(e, OperationType.WRITE, `drivers/${newDriver.id}`);
     }
   };
 
@@ -148,7 +205,7 @@ export default function App() {
     try {
       await setDoc(doc(db, 'orders', newOrder.id), newOrder);
     } catch (e) {
-      console.error("Error adding order: ", e);
+      handleFirestoreError(e, OperationType.WRITE, `orders/${newOrder.id}`);
     }
   };
 
@@ -357,10 +414,20 @@ export default function App() {
             orders={orders.filter(o => o.restaurantId === role)}
             updateOrder={updateOrder}
             addOrder={addOrder}
+            deleteOrder={deleteOrder}
             restaurantId={role}
           />
         ) : (
-          <CentralDashboard drivers={drivers} updateDriver={updateDriver} addDriver={addDriver} deleteDriver={deleteDriver} orders={orders} updateOrder={updateOrder} />
+          <CentralDashboard 
+            drivers={drivers} 
+            updateDriver={updateDriver} 
+            addDriver={addDriver} 
+            deleteDriver={deleteDriver} 
+            orders={orders} 
+            updateOrder={updateOrder}
+            appConfig={appConfig}
+            updateAppConfig={updateAppConfig}
+          />
         )}
       </main>
       
