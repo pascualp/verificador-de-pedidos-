@@ -24,7 +24,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
     const pw = driverPasswordInput.trim();
     if (!pw) return;
     
-    const matchedDriver = drivers.find(d => d.password && d.password === pw);
+    const matchedDriver = drivers.find(d => d.password && String(d.password).trim() === pw);
     if (matchedDriver) {
       handleSelectDriver(matchedDriver.id);
       setDriverPasswordInput('');
@@ -132,11 +132,14 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
   return (
     <div className="flex flex-col gap-6 max-w-md mx-auto">
       <button 
-        onClick={() => handleSelectDriver(null)}
+        onClick={() => {
+          handleSelectDriver(null);
+          onBack();
+        }}
         className="text-gray-500 text-sm font-medium flex items-center gap-1 hover:text-gray-900"
       >
         <RotateCcw className="w-4 h-4" />
-        Cambiar de repartidor
+        Cerrar Sesión
       </button>
 
       <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-xl overflow-hidden flex flex-col">

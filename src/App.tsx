@@ -238,12 +238,18 @@ export default function App() {
       } else {
         setError('Contraseña incorrecta. Usa "tropical" o "statua".');
       }
-    } else if (roleToCheck === 'driver' && pw === 'repartidor') {
-      localStorage.setItem('delivery_role', 'driver');
-      localStorage.setItem('dumoh_app_mode', 'driver');
-      setRole('driver');
-      setAppMode('driver');
-      setPendingRole(null);
+    } else if (roleToCheck === 'driver') {
+      const matchedDriver = drivers.find(d => d.password && String(d.password).trim() === password.trim());
+      if (matchedDriver) {
+        localStorage.setItem('delivery_role', 'driver');
+        localStorage.setItem('dumoh_app_mode', 'driver');
+        localStorage.setItem('dumoh_selected_driver_v2', matchedDriver.id);
+        setRole('driver');
+        setAppMode('driver');
+        setPendingRole(null);
+      } else {
+        setError('Contraseña de repartidor incorrecta.');
+      }
     } else if (roleToCheck === 'central' && pw === 'central') {
       localStorage.setItem('delivery_role', 'central');
       localStorage.removeItem('dumoh_app_mode');

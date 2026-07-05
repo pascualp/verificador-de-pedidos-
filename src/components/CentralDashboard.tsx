@@ -137,7 +137,10 @@ export function CentralDashboard({
                 active.map(driver => (
                   <div key={driver.id} className={`flex flex-col hover:bg-white/80 transition-colors group border-b border-gray-100 last:border-b-0 ${driver.isHidden ? 'bg-gray-50' : 'bg-white/40'}`}>
                     <div className={`px-4 py-2.5 text-white text-sm font-black tracking-widest uppercase shadow-sm flex items-center justify-between ${driver.isHidden ? 'bg-gray-400' : 'bg-cyan-500'}`}>
-                      <span>{driver.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span>{driver.name}</span>
+                        {driver.password && <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded border border-white/30 lowercase tracking-normal font-medium" title="Contraseña">🔑 {driver.password}</span>}
+                      </div>
                       {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
                     </div>
                     <div className="p-4">
@@ -219,7 +222,10 @@ export function CentralDashboard({
                 free.map(driver => (
                   <div key={driver.id} className={`flex flex-col hover:bg-white/80 transition-colors group border-b border-gray-100 last:border-b-0 ${driver.isHidden ? 'bg-gray-50' : 'bg-white/40'}`}>
                     <div className={`px-4 py-2.5 text-white text-sm font-black tracking-widest uppercase shadow-sm flex items-center justify-between ${driver.isHidden ? 'bg-gray-400' : 'bg-cyan-500'}`}>
-                      <span>{driver.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span>{driver.name}</span>
+                        {driver.password && <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded border border-white/30 lowercase tracking-normal font-medium" title="Contraseña">🔑 {driver.password}</span>}
+                      </div>
                       {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
                     </div>
                     <div className="p-4 flex items-center justify-between">
