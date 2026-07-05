@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Driver, Order } from '../types';
 import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft } from 'lucide-react';
-import { TimeElapsed } from './TimeElapsed';
 
 export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, onBack }: { drivers: Driver[], updateDriver: (d: Driver) => void, orders?: Order[], updateOrder?: (o: Order) => void, onBack: () => void }) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(() => {
@@ -166,15 +165,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 text-gray-600 bg-gray-50 p-4 rounded-xl">
-                <Clock className="w-5 h-5 text-gray-400 mt-0.5" />
-                <div>
-                  <div className="text-sm font-bold">Tiempo en ruta</div>
-                  <div className="text-lg font-medium text-gray-900">
-                    <TimeElapsed startTime={selectedDriver.lastUpdated} />
-                  </div>
-                </div>
-              </div>
+              
 
               {orders && orders.filter(o => o.driverId === selectedDriver.id && o.status === 'Asignado').length > 0 && (
                 <div className="mt-2 border-t border-gray-100 pt-4">
@@ -184,9 +175,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                       <div key={order.id} className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm flex flex-col gap-3">
                         <div className="flex justify-between items-start">
                           <span className="font-black text-xl text-gray-900">#{order.orderNumber}</span>
-                          <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded">
-                            <TimeElapsed startTime={order.assignedAt || order.createdAt} />
-                          </span>
+                          
                         </div>
                         
                         <div className="flex flex-col gap-1">

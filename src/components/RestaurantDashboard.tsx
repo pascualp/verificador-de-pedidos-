@@ -1,7 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { Driver, Order } from '../types';
 import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X } from 'lucide-react';
-import { TimeElapsed } from './TimeElapsed';
 import { TimeRemaining } from './TimeRemaining';
 
 export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
@@ -150,7 +149,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                   )}
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-black text-lg">#{order.orderNumber}</span>
-                    <span className="text-xs text-gray-500"><TimeElapsed startTime={order.createdAt} /></span>
+                    
                   </div>
                   <div className="text-sm text-gray-700 mb-1 font-medium">{order.customerName}</div>
                   {order.customerPhone && <div className="text-xs text-gray-500 mb-1">{order.customerPhone}</div>}
@@ -261,10 +260,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                           #{orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').map(o => o.orderNumber).join(', #')}
                         </div>
                       )}
-                      <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
-                        <Clock className="w-3 h-3" />
-                        Hace: <TimeElapsed startTime={driver.lastUpdated} />
-                      </div>
+                      
                     </div>
                   )}
                   

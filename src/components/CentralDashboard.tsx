@@ -3,7 +3,6 @@ import { Package, MapPin, Clock, User, Plus, Edit2, Trash2, Check, X, TreePalm, 
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
-import { TimeElapsed } from './TimeElapsed';
 import { TimeRemaining } from './TimeRemaining';
 import { WebhookSettings } from './WebhookSettings';
 
@@ -108,7 +107,7 @@ export function CentralDashboard({
                       )}
                       <div className="flex justify-between items-start mb-2">
                         <span className="font-black text-lg text-gray-800">#{order.orderNumber}</span>
-                        <span className="text-xs text-gray-500"><TimeElapsed startTime={order.createdAt} /></span>
+                        
                       </div>
                       {order.customerName && (
                         <div className="text-sm font-medium text-gray-700 truncate">{order.customerName}</div>
@@ -169,10 +168,7 @@ export function CentralDashboard({
                           <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
                             <span>Historial: {driver.totalOrders || 0} pedidos</span>
                           </div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                            <Clock className="w-3 h-3" />
-                            Salió hace <TimeElapsed startTime={driver.lastUpdated} />
-                          </div>
+                          
                         </div>
                         <div className="flex items-center gap-3 ml-4">
                           <div className="flex flex-col items-end">
@@ -410,7 +406,7 @@ export function CentralDashboard({
                   </span>
                 </div>
                 <div className="text-sm font-medium">{order.customerName}</div>
-                <div className="text-xs text-gray-500 mt-2"><TimeElapsed startTime={order.createdAt} /></div>
+                
               </div>
             ))}
           </div>
