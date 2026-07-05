@@ -11,6 +11,7 @@ export interface Driver {
   scheduledDays?: DayOfWeek[];
   restaurantId: string;
   isHidden?: boolean;
+  password?: string;
 }
 
 export type OrderStatus = 'En Cola' | 'Asignado' | 'Entregado' | 'Cancelado';

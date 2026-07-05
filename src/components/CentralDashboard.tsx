@@ -19,7 +19,7 @@ export function CentralDashboard({
 }: { 
   drivers: Driver[], 
   updateDriver: (d: Driver) => void, 
-  addDriver: (name: string, restaurantId: string) => void, 
+  addDriver: (name: string, restaurantId: string, password?: string) => void, 
   deleteDriver: (id: string) => void, 
   orders?: Order[], 
   updateOrder?: (o: Order) => void,
@@ -31,8 +31,10 @@ export function CentralDashboard({
 
   const [newDriverName, setNewDriverName] = useState('');
   const [newDriverRestaurant, setNewDriverRestaurant] = useState('restaurant1');
+  const [newDriverPassword, setNewDriverPassword] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editPassword, setEditPassword] = useState('');
   const [hiddenRestaurants, setHiddenRestaurants] = useState<Record<string, boolean>>({});
   const [currentView, setCurrentView] = useState<'dashboard' | 'webhooks'>('dashboard');
 
@@ -42,7 +44,11 @@ export function CentralDashboard({
 
   const handleEditSave = (driver: Driver) => {
     if (editName.trim()) {
-      updateDriver({ ...driver, name: editName.trim() });
+      updateDriver({ 
+        ...driver, 
+        name: editName.trim(), 
+        password: editPassword.trim() || undefined 
+      });
     }
     setEditingId(null);
   };
@@ -219,21 +225,33 @@ export function CentralDashboard({
                     <div className="p-4 flex items-center justify-between">
                       <div className="min-w-0 flex-1">
                         {editingId === driver.id ? (
-                          <div className="flex items-center gap-1 mb-1">
-                            <input 
-                              type="text" 
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                              className="border border-gray-300 rounded px-2 py-0.5 text-sm w-32 outline-none focus:border-cyan-500 bg-white"
-                              autoFocus
-                            />
-                            <button onClick={() => handleEditSave(driver)} className="text-green-600 hover:text-green-700 p-1 bg-white rounded shadow-sm"><Check className="w-4 h-4" /></button>
-                            <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 bg-white rounded shadow-sm"><X className="w-4 h-4" /></button>
+                          <div className="flex flex-col gap-2 mb-2 w-full max-w-sm">
+                            <div className="flex items-center gap-1">
+                              <input 
+                                type="text" 
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 outline-none focus:border-cyan-500 bg-white"
+                                placeholder="Nombre"
+                                autoFocus
+                              />
+                              <input 
+                                type="text" 
+                                value={editPassword}
+                                onChange={(e) => setEditPassword(e.target.value)}
+                                className="border border-gray-300 rounded px-2 py-1 text-sm w-24 outline-none focus:border-cyan-500 bg-white"
+                                placeholder="Contraseña"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => handleEditSave(driver)} className="text-white bg-green-500 hover:bg-green-600 px-3 py-1 text-xs font-bold rounded shadow-sm flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Guardar</button>
+                              <button onClick={() => setEditingId(null)} className="text-gray-600 bg-gray-200 hover:bg-gray-300 px-3 py-1 text-xs font-bold rounded shadow-sm flex items-center gap-1"><X className="w-3.5 h-3.5" /> Cancelar</button>
+                            </div>
                           </div>
                         ) : (
                           <div className="font-medium flex items-center gap-2">
                             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                              <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); setEditPassword(driver.password || ''); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
                               <button onClick={() => updateDriver({ ...driver, isHidden: !driver.isHidden })} className={`transition-colors ${driver.isHidden ? 'text-gray-400 hover:text-gray-600' : 'text-gray-400 hover:text-cyan-600'}`} title={driver.isHidden ? "Mostrar a restaurantes" : "Ocultar a restaurantes"}>
                                 {driver.isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                               </button>
@@ -317,8 +335,9 @@ export function CentralDashboard({
             onSubmit={(e) => { 
               e.preventDefault(); 
               if (newDriverName.trim()) { 
-                addDriver(newDriverName.trim(), newDriverRestaurant); 
+                addDriver(newDriverName.trim(), newDriverRestaurant, newDriverPassword.trim()); 
                 setNewDriverName(''); 
+                setNewDriverPassword('');
                 setShowAddForm(false);
               } 
             }}
@@ -333,6 +352,16 @@ export function CentralDashboard({
                 value={newDriverName}
                 onChange={(e) => setNewDriverName(e.target.value)}
                 autoFocus
+              />
+            </div>
+            <div className="flex-1 w-full max-w-[150px]">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Contraseña</label>
+              <input 
+                type="text"
+                placeholder="Opcional"
+                className="w-full border border-gray-300 rounded-xl px-4 py-2 text-base outline-none focus:border-cyan-500"
+                value={newDriverPassword}
+                onChange={(e) => setNewDriverPassword(e.target.value)}
               />
             </div>
             <div className="flex-1 w-full">

@@ -174,7 +174,7 @@ export default function App() {
     }
   };
 
-  const addDriver = async (name: string, restaurantId: string = 'restaurant1') => {
+  const addDriver = async (name: string, restaurantId: string = 'restaurant1', password?: string) => {
     const newDriver: Driver = {
       id: crypto.randomUUID(),
       name,
@@ -182,7 +182,8 @@ export default function App() {
       activeOrders: 0,
       totalOrders: 0,
       lastUpdated: new Date().toISOString(),
-      restaurantId
+      restaurantId,
+      password: password || undefined
     };
     try {
       await setDoc(doc(db, 'drivers', newDriver.id), newDriver);

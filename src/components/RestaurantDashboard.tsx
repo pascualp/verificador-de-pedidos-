@@ -5,8 +5,6 @@ import { TimeElapsed } from './TimeElapsed';
 import { TimeRemaining } from './TimeRemaining';
 
 export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
-  const [orderInputs, setOrderInputs] = useState<Record<string, string>>({});
-  
   // New order form state
   const [newOrderNumber, setNewOrderNumber] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
@@ -33,19 +31,6 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
       setNewCustomerAddress('');
       setNewPrepTime('');
       setIsAddingOrder(false);
-    }
-  };
-
-  const handleAssign = (driver: Driver) => {
-    const ordersToAssign = parseInt(orderInputs[driver.id] || '0', 10);
-    if (ordersToAssign > 0) {
-      updateDriver({
-        ...driver,
-        status: 'Repartiendo',
-        activeOrders: (driver.activeOrders || 0) + ordersToAssign,
-        lastUpdated: new Date().toISOString()
-      });
-      setOrderInputs({ ...orderInputs, [driver.id]: '' });
     }
   };
 
@@ -277,24 +262,6 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                     </div>
                   )}
                   
-                  <div className="flex gap-2 items-center">
-                    <input 
-                      type="number"
-                      min="1"
-                      placeholder="+"
-                      className="w-16 border border-gray-300 rounded-lg px-2 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-center"
-                      value={orderInputs[driver.id] || ''}
-                      onChange={(e) => setOrderInputs({ ...orderInputs, [driver.id]: e.target.value })}
-                    />
-                    <button 
-                      onClick={() => handleAssign(driver)}
-                      disabled={!orderInputs[driver.id] || parseInt(orderInputs[driver.id], 10) < 1}
-                      className="flex-1 bg-cyan-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-cyan-600 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {driver.status === 'Repartiendo' ? 'Añadir' : 'Asignar'}
-                    </button>
-                  </div>
-
                   {driver.status === 'Repartiendo' && (
                     <button 
                       onClick={() => handleReturn(driver)}

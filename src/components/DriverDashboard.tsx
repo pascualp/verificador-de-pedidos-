@@ -5,15 +5,32 @@ import { TimeElapsed } from './TimeElapsed';
 
 export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, onBack }: { drivers: Driver[], updateDriver: (d: Driver) => void, orders?: Order[], updateOrder?: (o: Order) => void, onBack: () => void }) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(() => {
-    return localStorage.getItem('dumoh_selected_driver') || null;
+    return localStorage.getItem('dumoh_selected_driver_v2') || null;
   });
+  const [driverPasswordInput, setDriverPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState('');
 
   const handleSelectDriver = (id: string | null) => {
     setSelectedDriverId(id);
     if (id) {
-      localStorage.setItem('dumoh_selected_driver', id);
+      localStorage.setItem('dumoh_selected_driver_v2', id);
     } else {
-      localStorage.removeItem('dumoh_selected_driver');
+      localStorage.removeItem('dumoh_selected_driver_v2');
+    }
+  };
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const pw = driverPasswordInput.trim();
+    if (!pw) return;
+    
+    const matchedDriver = drivers.find(d => d.password && d.password === pw);
+    if (matchedDriver) {
+      handleSelectDriver(matchedDriver.id);
+      setDriverPasswordInput('');
+      setLoginError('');
+    } else {
+      setLoginError('Código incorrecto o no encontrado.');
     }
   };
 
@@ -39,6 +56,8 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
   };
 
   if (!selectedDriverId) {
+    const driversWithoutPassword = drivers.filter(d => !d.password);
+    
     return (
       <div className="flex flex-col gap-6 max-w-md mx-auto">
         <button 
@@ -50,28 +69,60 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
         </button>
         <div className="text-center">
           <h2 className="text-2xl font-black text-gray-900">Panel de Repartidor</h2>
-          <p className="text-gray-500 mt-1">Selecciona tu nombre para continuar</p>
+          <p className="text-gray-500 mt-1">Ingresa tu código de acceso para continuar</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
-          {drivers.map(driver => (
-            <button
-              key={driver.id}
-              onClick={() => handleSelectDriver(driver.id)}
-              className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between hover:border-cyan-500 transition-all group"
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <form onSubmit={handleLoginSubmit} className="flex flex-col gap-4">
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Código de Acceso</label>
+              <input 
+                type="password"
+                value={driverPasswordInput}
+                onChange={(e) => setDriverPasswordInput(e.target.value)}
+                placeholder="Ingresa tu contraseña..."
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg text-center font-black tracking-widest outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+              />
+              {loginError && <p className="text-red-500 text-sm mt-2 font-medium text-center">{loginError}</p>}
+            </div>
+            <button 
+              type="submit"
+              className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 rounded-lg transition-colors w-full"
             >
-              <div className="flex items-center gap-3">
-                <div className="bg-gray-100 p-2 rounded-full group-hover:bg-cyan-50 group-hover:text-cyan-600">
-                  <User className="w-5 h-5" />
-                </div>
-                <span className="font-bold text-lg">{driver.name}</span>
-              </div>
-              <span className={`text-xs px-2 py-1 rounded-full font-bold ${driver.status === 'Libre' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                {driver.status}
-              </span>
+              Entrar
             </button>
-          ))}
+          </form>
         </div>
+
+        {driversWithoutPassword.length > 0 && (
+          <>
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-gray-200"></div>
+              <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-bold uppercase">o selecciona (sin código)</span>
+              <div className="flex-grow border-t border-gray-200"></div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {driversWithoutPassword.map(driver => (
+                <button
+                  key={driver.id}
+                  onClick={() => handleSelectDriver(driver.id)}
+                  className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between hover:border-cyan-500 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-gray-100 p-2 rounded-full group-hover:bg-cyan-50 group-hover:text-cyan-600">
+                      <User className="w-5 h-5" />
+                    </div>
+                    <span className="font-bold text-lg">{driver.name}</span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full font-bold ${driver.status === 'Libre' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                    {driver.status}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     );
   }
