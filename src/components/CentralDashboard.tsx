@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
 import { TimeElapsed } from './TimeElapsed';
+import { TimeRemaining } from './TimeRemaining';
 import { WebhookSettings } from './WebhookSettings';
 
 export function CentralDashboard({ 
@@ -99,7 +100,7 @@ export function CentralDashboard({
                       {order.prepTime && (
                         <div className="absolute -top-2.5 -right-2.5 bg-yellow-100 text-yellow-800 border border-yellow-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {order.prepTime} min
+                          <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
                         </div>
                       )}
                       <div className="flex justify-between items-start mb-2">

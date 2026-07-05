@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react';
 import { Driver, Order } from '../types';
 import { User, RotateCcw, Clock, Plus, MapPin, Trash2 } from 'lucide-react';
 import { TimeElapsed } from './TimeElapsed';
+import { TimeRemaining } from './TimeRemaining';
 
 export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
   const [orderInputs, setOrderInputs] = useState<Record<string, string>>({});
@@ -160,7 +161,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                   {order.prepTime && (
                     <div className="absolute -top-2.5 -right-2.5 bg-yellow-100 text-yellow-800 border border-yellow-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {order.prepTime} min
+                      <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
                     </div>
                   )}
                   <div className="flex justify-between items-start mb-2">
