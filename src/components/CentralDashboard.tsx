@@ -104,10 +104,7 @@ export function CentralDashboard({
                   {orders.filter(o => o.restaurantId === restId && o.status === 'En Cola').map(order => (
                     <div key={order.id} className="bg-white p-3 rounded-xl border border-orange-200 shadow-sm relative flex flex-col">
                       {order.prepTime && (
-                        <div className="absolute -top-2.5 -right-2.5 bg-yellow-100 text-yellow-800 border border-yellow-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
-                        </div>
+                        <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
                       )}
                       <div className="flex justify-between items-start mb-2">
                         <span className="font-black text-lg text-gray-800">#{order.orderNumber}</span>

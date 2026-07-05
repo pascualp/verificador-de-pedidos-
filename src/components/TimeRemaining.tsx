@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Clock } from 'lucide-react';
 
 export function TimeRemaining({ startTime, prepTimeMinutes }: { startTime: string; prepTimeMinutes: number }) {
   const [remaining, setRemaining] = useState('');
@@ -39,9 +40,19 @@ export function TimeRemaining({ startTime, prepTimeMinutes }: { startTime: strin
     return () => clearInterval(interval);
   }, [startTime, prepTimeMinutes]);
 
+  if (isOverdue) {
+    return (
+      <div className="absolute -top-2.5 -right-2.5 bg-red-100 text-red-800 border border-red-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 animate-pulse">
+        <Clock className="w-3 h-3" />
+        <span className="font-mono text-[10px] font-black uppercase tracking-wider">Atrasado: {remaining}</span>
+      </div>
+    );
+  }
+
   return (
-    <span className={`font-mono text-xs font-semibold ${isOverdue ? 'text-red-700' : 'text-yellow-800'}`}>
-      {remaining}
-    </span>
+    <div className="absolute -top-2.5 -right-2.5 bg-yellow-100 text-yellow-800 border border-yellow-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+      <Clock className="w-3 h-3" />
+      <span className="font-mono text-[10px] font-bold">{remaining}</span>
+    </div>
   );
 }
