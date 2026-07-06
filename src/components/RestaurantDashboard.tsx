@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { Driver, Order } from '../types';
-import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X } from 'lucide-react';
+import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X, Edit2 } from 'lucide-react';
 import { TimeRemaining } from './TimeRemaining';
 
 export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
