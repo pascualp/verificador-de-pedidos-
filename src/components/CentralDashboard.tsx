@@ -41,6 +41,13 @@ export function CentralDashboard({
     setHiddenRestaurants(prev => ({ ...prev, [restId]: !prev[restId] }));
   };
 
+  
+  const getDriverTotal = (driver: Driver) => {
+    const delivered = driver.totalCollected || 0;
+    const active = orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').reduce((sum, o) => sum + (o.price || 0), 0);
+    return delivered + active;
+  };
+
   const handleEditSave = (driver: Driver) => {
     if (editName.trim()) {
       updateDriver({ 
@@ -221,14 +228,13 @@ export function CentralDashboard({
                           )}
                           <div className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
                             <span>Historial: {driver.totalOrders || 0} pedidos</span>
-                            {driver.totalCollected !== undefined && driver.totalCollected > 0 && (
-                              <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1">
                                 <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-black border border-emerald-200">
-                                  ${driver.totalCollected.toFixed(2)}
+                                  ${getDriverTotal(driver).toFixed(2)}
                                 </span>
                                 <button 
                                   onClick={() => {
-                                    if(window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal: $${driver.totalCollected?.toFixed(2)}`)) {
+                                    if(window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal: $${getDriverTotal(driver).toFixed(2)}`)) {
                                       updateDriver({ ...driver, totalCollected: 0, lastUpdated: new Date().toISOString() });
                                     }
                                   }}
@@ -238,7 +244,6 @@ export function CentralDashboard({
                                   <RotateCcw className="w-3.5 h-3.5" />
                                 </button>
                               </div>
-                            )}
                           </div>
                           
                         </div>

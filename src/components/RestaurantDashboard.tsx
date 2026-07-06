@@ -60,6 +60,12 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
     }
   };
 
+  const getDriverTotal = (driver: Driver) => {
+    const delivered = driver.totalCollected || 0;
+    const active = (orders || []).filter(o => o.driverId === driver.id && o.status === 'Asignado').reduce((sum, o) => sum + (o.price || 0), 0);
+    return delivered + active;
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -302,11 +308,9 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                     <div className="flex flex-col">
                       <div className="text-xs text-gray-500 mt-0.5 font-medium flex items-center gap-2">
                         <span>Historial: {driver.totalOrders || 0} pedidos</span>
-                        {driver.totalCollected !== undefined && driver.totalCollected > 0 && (
-                          <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-black border border-emerald-200" title="Dinero en caja">
-                            ${driver.totalCollected.toFixed(2)}
-                          </span>
-                        )}
+                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-black border border-emerald-200" title="Dinero en caja">
+                            ${getDriverTotal(driver).toFixed(2)}
+                        </span>
                       </div>
                       <button 
                         onClick={() => setSelectedDriverHistory(driver)}
@@ -315,10 +319,9 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                         <FileText className="w-3 h-3" />
                         Ver detalle
                       </button>
-                      {driver.totalCollected !== undefined && driver.totalCollected > 0 && (
-                        <button 
+                      <button 
                           onClick={() => {
-                            if(window.confirm(`¿Cerrar turno de ${driver.name}?\nCaja: $${driver.totalCollected?.toFixed(2)}\n\nEsto reiniciará su caja a $0.00.`)) {
+                            if(window.confirm(`¿Cerrar turno de ${driver.name}?\nCaja: $${getDriverTotal(driver).toFixed(2)}\n\nEsto reiniciará su caja a $0.00.`)) {
                               updateDriver({ ...driver, totalCollected: 0, lastUpdated: new Date().toISOString() });
                             }
                           }}
@@ -326,8 +329,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                         >
                           <RotateCcw className="w-3 h-3" />
                           Cerrar Turno (Caja)
-                        </button>
-                      )}
+                      </button>
                       {driver.scheduledDays && driver.scheduledDays.length > 0 && (
                         <div className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-semibold">
                           Días: {driver.scheduledDays.map(d => d.slice(0,3)).join(', ')}
@@ -515,9 +517,10 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
             </div>
             <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
               <span className="text-sm font-bold text-gray-600">Total Entregados el {new Date(historyDate).toLocaleDateString()}</span>
-              <span className="text-xl font-black text-gray-900">
-                {filteredOrders.length}
-              </span>
+              <div className="flex flex-col items-end">
+                <span className="text-xl font-black text-gray-900">{filteredOrders.length} {filteredOrders.length === 1 ? "pedido" : "pedidos"}</span>
+                <span className="text-emerald-700 font-bold">${filteredOrders.reduce((sum, o) => sum + (o.price || 0), 0).toFixed(2)}</span>
+              </div>
             </div>
           </div>
         </div>

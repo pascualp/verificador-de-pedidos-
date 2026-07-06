@@ -35,6 +35,12 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
 
   const selectedDriver = drivers.find(d => d.id === selectedDriverId);
 
+  const getDriverTotal = (driver: Driver) => {
+    const delivered = driver.totalCollected || 0;
+    const active = (orders || []).filter(o => o.driverId === driver.id && o.status === 'Asignado').reduce((sum, o) => sum + (o.price || 0), 0);
+    return delivered + active;
+  };
+
   const handleMarkAsFree = (driver: Driver) => {
     const assignedOrders = orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado') || [];
     const shiftTotal = assignedOrders.reduce((sum, o) => sum + (o.price || 0), 0);
@@ -59,7 +65,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
   };
 
   const handleCloseShift = (driver: Driver) => {
-    const total = driver.totalCollected || 0;
+    const total = getDriverTotal(driver);
     if (window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal recaudado: $${total.toFixed(2)}\n\nEsta acción reiniciará la caja a $0.00.`)) {
       updateDriver({
         ...driver,
@@ -256,7 +262,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
               <div className="mt-8 w-full border-t border-gray-100 pt-8">
                 <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6">
                   <div className="text-sm font-bold text-emerald-700 uppercase tracking-widest mb-1 text-center">Efectivo en Caja</div>
-                  <div className="text-4xl font-black text-emerald-900 text-center">${(selectedDriver.totalCollected || 0).toFixed(2)}</div>
+                  <div className="text-4xl font-black text-emerald-900 text-center">${getDriverTotal(selectedDriver).toFixed(2)}</div>
                   <p className="text-[10px] text-emerald-600 text-center mt-2 font-medium">El cierre de caja debe ser realizado por el restaurante.</p>
                 </div>
               </div>
