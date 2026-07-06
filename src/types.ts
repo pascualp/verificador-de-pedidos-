@@ -12,6 +12,7 @@ export interface Driver {
   restaurantId: string;
   isHidden?: boolean;
   password?: string;
+  totalCollected?: number;
 }
 
 export type OrderStatus = 'En Cola' | 'Asignado' | 'Entregado' | 'Cancelado';
@@ -59,5 +60,6 @@ export interface Order {
   createdAt: string;
   assignedAt?: string;
   prepTime?: number;
+  price?: number;
 }
 

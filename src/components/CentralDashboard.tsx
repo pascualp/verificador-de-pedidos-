@@ -1,5 +1,5 @@
 import { AppConfig, Driver, Order } from '../types';
-import { Package, MapPin, Clock, User, Plus, Edit2, Trash2, Check, X, TreePalm, Pizza, Zap, Eye, EyeOff, Webhook } from 'lucide-react';
+import { Package, MapPin, Clock, User, Plus, Edit2, Trash2, Check, X, TreePalm, Pizza, Zap, Eye, EyeOff, Webhook, RotateCcw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
@@ -106,8 +106,62 @@ export function CentralDashboard({
                         <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
                       )}
                       <div className="flex justify-between items-start mb-2">
-                        <span className="font-black text-lg text-gray-800">#{order.orderNumber}</span>
-                        
+                        <div className="flex flex-col gap-1">
+                          <span className="font-black text-lg text-gray-800">#{order.orderNumber}</span>
+                          {order.price !== undefined ? (
+                            <div className="flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
+                              <span className="text-emerald-700 font-bold text-xs">${order.price.toFixed(2)}</span>
+                              <button 
+                                onClick={() => {
+                                  const newPriceStr = window.prompt('Editar precio:', order.price?.toString());
+                                  if (newPriceStr !== null) {
+                                    const newPrice = parseFloat(newPriceStr) || 0;
+                                    const diff = newPrice - (order.price || 0);
+                                    updateOrder({ ...order, price: newPrice });
+                                    
+                                    // If delivered, update driver's total collected
+                                    if (order.status === 'Entregado' && order.driverId) {
+                                      const driver = drivers.find(d => d.id === order.driverId);
+                                      if (driver) {
+                                        updateDriver({
+                                          ...driver,
+                                          totalCollected: (driver.totalCollected || 0) + diff
+                                        });
+                                      }
+                                    }
+                                  }
+                                }}
+                                className="text-emerald-400 hover:text-emerald-600"
+                              >
+                                <Edit2 className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => {
+                                const newPriceStr = window.prompt('Asignar precio:');
+                                if (newPriceStr !== null) {
+                                  const newPrice = parseFloat(newPriceStr) || 0;
+                                  updateOrder({ ...order, price: newPrice });
+                                  
+                                  // If delivered, update driver's total collected
+                                  if (order.status === 'Entregado' && order.driverId) {
+                                    const driver = drivers.find(d => d.id === order.driverId);
+                                    if (driver) {
+                                      updateDriver({
+                                        ...driver,
+                                        totalCollected: (driver.totalCollected || 0) + newPrice
+                                      });
+                                    }
+                                  }
+                                }
+                              }}
+                              className="text-[10px] bg-gray-50 text-gray-400 px-1.5 py-0.5 rounded border border-dashed border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 transition-colors w-fit"
+                            >
+                              + Precio
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {order.customerName && (
                         <div className="text-sm font-medium text-gray-700 truncate">{order.customerName}</div>
@@ -165,8 +219,26 @@ export function CentralDashboard({
                               </div>
                             </div>
                           )}
-                          <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                          <div className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
                             <span>Historial: {driver.totalOrders || 0} pedidos</span>
+                            {driver.totalCollected !== undefined && driver.totalCollected > 0 && (
+                              <div className="flex items-center gap-1">
+                                <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-black border border-emerald-200">
+                                  ${driver.totalCollected.toFixed(2)}
+                                </span>
+                                <button 
+                                  onClick={() => {
+                                    if(window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal: $${driver.totalCollected?.toFixed(2)}`)) {
+                                      updateDriver({ ...driver, totalCollected: 0, lastUpdated: new Date().toISOString() });
+                                    }
+                                  }}
+                                  className="text-gray-400 hover:text-emerald-600 transition-colors"
+                                  title="Cerrar Turno (Caja)"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                           
                         </div>
@@ -400,8 +472,38 @@ export function CentralDashboard({
             {orders.filter(o => o.status === 'En Cola').map(order => (
               <div key={order.id} className="border border-orange-100 bg-orange-50/30 p-4 rounded-xl">
                 <div className="flex justify-between mb-1">
-                  <span className="font-bold">#{order.orderNumber}</span>
-                  <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-100">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold">#{order.orderNumber}</span>
+                    {order.price !== undefined ? (
+                      <div className="flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
+                        <span className="text-emerald-700 font-black text-xs">${order.price.toFixed(2)}</span>
+                        <button 
+                          onClick={() => {
+                            const newPrice = window.prompt('Editar precio:', order.price?.toString());
+                            if (newPrice !== null) {
+                              updateOrder({ ...order, price: parseFloat(newPrice) || 0 });
+                            }
+                          }}
+                          className="text-emerald-400 hover:text-emerald-600"
+                        >
+                          <Edit2 className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          const newPrice = window.prompt('Asignar precio:');
+                          if (newPrice !== null) {
+                            updateOrder({ ...order, price: parseFloat(newPrice) || 0 });
+                          }
+                        }}
+                        className="text-[10px] bg-gray-50 text-gray-400 px-1.5 py-0.5 rounded border border-dashed border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 transition-colors w-fit"
+                      >
+                        + Precio
+                      </button>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-100 h-fit">
                     {order.restaurantId === 'restaurant1' ? 'Tropical' : 'S^tatua'}
                   </span>
                 </div>

@@ -36,20 +36,35 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
   const selectedDriver = drivers.find(d => d.id === selectedDriverId);
 
   const handleMarkAsFree = (driver: Driver) => {
+    const assignedOrders = orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado') || [];
+    const shiftTotal = assignedOrders.reduce((sum, o) => sum + (o.price || 0), 0);
+
     updateDriver({
       ...driver,
       status: 'Libre',
       activeOrders: 0,
       totalOrders: (driver.totalOrders || 0) + driver.activeOrders,
+      totalCollected: (driver.totalCollected || 0) + shiftTotal,
       lastUpdated: new Date().toISOString()
     });
     
     if (orders && updateOrder) {
-      orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').forEach(o => {
+      assignedOrders.forEach(o => {
         updateOrder({
           ...o,
           status: 'Entregado'
         });
+      });
+    }
+  };
+
+  const handleCloseShift = (driver: Driver) => {
+    const total = driver.totalCollected || 0;
+    if (window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal recaudado: $${total.toFixed(2)}\n\nEsta acción reiniciará la caja a $0.00.`)) {
+      updateDriver({
+        ...driver,
+        totalCollected: 0,
+        lastUpdated: new Date().toISOString()
       });
     }
   };
@@ -175,7 +190,11 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                       <div key={order.id} className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm flex flex-col gap-3">
                         <div className="flex justify-between items-start">
                           <span className="font-black text-xl text-gray-900">#{order.orderNumber}</span>
-                          
+                          {order.price !== undefined && (
+                            <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg font-black text-lg shadow-sm border border-emerald-200">
+                              ${order.price.toFixed(2)}
+                            </span>
+                          )}
                         </div>
                         
                         <div className="flex flex-col gap-1">
@@ -232,6 +251,14 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
               <div>
                 <h3 className="text-xl font-black text-gray-900">¡Estás disponible!</h3>
                 <p className="text-gray-500 mt-1">Espera a que el restaurante te asigne nuevos pedidos.</p>
+              </div>
+              
+              <div className="mt-8 w-full border-t border-gray-100 pt-8">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6">
+                  <div className="text-sm font-bold text-emerald-700 uppercase tracking-widest mb-1 text-center">Efectivo en Caja</div>
+                  <div className="text-4xl font-black text-emerald-900 text-center">${(selectedDriver.totalCollected || 0).toFixed(2)}</div>
+                  <p className="text-[10px] text-emerald-600 text-center mt-2 font-medium">El cierre de caja debe ser realizado por el restaurante.</p>
+                </div>
               </div>
             </div>
           )}

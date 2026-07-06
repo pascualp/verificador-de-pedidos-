@@ -3,13 +3,14 @@ import { Driver, Order } from '../types';
 import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X } from 'lucide-react';
 import { TimeRemaining } from './TimeRemaining';
 
-export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
+export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
   // New order form state
   const [newOrderNumber, setNewOrderNumber] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
   const [newPrepTime, setNewPrepTime] = useState('');
+  const [newPrice, setNewPrice] = useState('');
   const [isAddingOrder, setIsAddingOrder] = useState(false);
   const [selectedDriverHistory, setSelectedDriverHistory] = useState<Driver | null>(null);
   const [historyDate, setHistoryDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
@@ -25,27 +26,32 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
         generatedOrderNumber = nextNumber.toString();
       }
 
-      addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress, newPrepTime ? parseInt(newPrepTime, 10) : undefined);
+      addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress, newPrepTime ? parseInt(newPrepTime, 10) : undefined, newPrice ? parseFloat(newPrice) : undefined);
       setNewOrderNumber('');
       setNewCustomerName('');
       setNewCustomerPhone('');
       setNewCustomerAddress('');
       setNewPrepTime('');
+      setNewPrice('');
       setIsAddingOrder(false);
     }
   };
 
   const handleReturn = (driver: Driver) => {
+    const assignedOrders = orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado') || [];
+    const shiftTotal = assignedOrders.reduce((sum, o) => sum + (o.price || 0), 0);
+
     updateDriver({
       ...driver,
       status: 'Libre',
       totalOrders: (driver.totalOrders || 0) + driver.activeOrders,
       activeOrders: 0,
+      totalCollected: (driver.totalCollected || 0) + shiftTotal,
       lastUpdated: new Date().toISOString()
     });
     
     if (orders && updateOrder) {
-      orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').forEach(o => {
+      assignedOrders.forEach(o => {
         updateOrder({
           ...o,
           status: 'Entregado'
@@ -116,6 +122,18 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                 />
               </div>
               <div className="w-24 shrink-0">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Precio ($)</label>
+                <input 
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-center font-bold"
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="w-24 shrink-0">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">T. Prep (min)</label>
                 <input 
                   type="number"
@@ -148,7 +166,62 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                     <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
                   )}
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-black text-lg">#{order.orderNumber}</span>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-black text-lg">#{order.orderNumber}</span>
+                      {order.price !== undefined ? (
+                        <div className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 w-fit">
+                          <span className="text-emerald-700 font-bold text-sm">${order.price.toFixed(2)}</span>
+                          <button 
+                            onClick={() => {
+                              const newPriceStr = window.prompt('Editar precio:', order.price?.toString());
+                              if (newPriceStr !== null) {
+                                const newPrice = parseFloat(newPriceStr) || 0;
+                                const diff = newPrice - (order.price || 0);
+                                updateOrder({ ...order, price: newPrice });
+                                
+                                // If delivered, update driver's total collected
+                                if (order.status === 'Entregado' && order.driverId) {
+                                  const driver = drivers.find(d => d.id === order.driverId);
+                                  if (driver) {
+                                    updateDriver({
+                                      ...driver,
+                                      totalCollected: (driver.totalCollected || 0) + diff
+                                    });
+                                  }
+                                }
+                              }
+                            }}
+                            className="text-emerald-400 hover:text-emerald-600"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => {
+                            const newPriceStr = window.prompt('Asignar precio:');
+                            if (newPriceStr !== null) {
+                              const newPrice = parseFloat(newPriceStr) || 0;
+                              updateOrder({ ...order, price: newPrice });
+                              
+                              // If delivered, update driver's total collected
+                              if (order.status === 'Entregado' && order.driverId) {
+                                const driver = drivers.find(d => d.id === order.driverId);
+                                if (driver) {
+                                  updateDriver({
+                                    ...driver,
+                                    totalCollected: (driver.totalCollected || 0) + newPrice
+                                  });
+                                }
+                              }
+                            }
+                          }}
+                          className="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border border-dashed border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 transition-colors w-fit"
+                        >
+                          + Precio
+                        </button>
+                      )}
+                    </div>
                     
                   </div>
                   <div className="text-sm text-gray-700 mb-1 font-medium">{order.customerName}</div>
@@ -227,7 +300,14 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-col">
-                      <div className="text-xs text-gray-500 mt-0.5 font-medium">Historial: {driver.totalOrders || 0} pedidos</div>
+                      <div className="text-xs text-gray-500 mt-0.5 font-medium flex items-center gap-2">
+                        <span>Historial: {driver.totalOrders || 0} pedidos</span>
+                        {driver.totalCollected !== undefined && driver.totalCollected > 0 && (
+                          <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-black border border-emerald-200" title="Dinero en caja">
+                            ${driver.totalCollected.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                       <button 
                         onClick={() => setSelectedDriverHistory(driver)}
                         className="text-[11px] mt-1 text-cyan-600 hover:text-cyan-700 font-bold flex items-center gap-1 w-fit bg-cyan-50 px-2 py-0.5 rounded transition-colors"
@@ -235,6 +315,19 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                         <FileText className="w-3 h-3" />
                         Ver detalle
                       </button>
+                      {driver.totalCollected !== undefined && driver.totalCollected > 0 && (
+                        <button 
+                          onClick={() => {
+                            if(window.confirm(`¿Cerrar turno de ${driver.name}?\nCaja: $${driver.totalCollected?.toFixed(2)}\n\nEsto reiniciará su caja a $0.00.`)) {
+                              updateDriver({ ...driver, totalCollected: 0, lastUpdated: new Date().toISOString() });
+                            }
+                          }}
+                          className="text-[10px] mt-1 text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 w-fit bg-emerald-50 px-2 py-0.5 rounded transition-colors border border-emerald-100"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Cerrar Turno (Caja)
+                        </button>
+                      )}
                       {driver.scheduledDays && driver.scheduledDays.length > 0 && (
                         <div className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-semibold">
                           Días: {driver.scheduledDays.map(d => d.slice(0,3)).join(', ')}
@@ -336,6 +429,66 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                           Entregado
                         </div>
                       </div>
+
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="flex flex-col gap-1">
+                          {order.price !== undefined ? (
+                            <div className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 w-fit">
+                              <span className="text-emerald-700 font-bold text-sm">${order.price.toFixed(2)}</span>
+                              <button 
+                                onClick={() => {
+                                  const newPriceStr = window.prompt('Editar precio:', order.price?.toString());
+                                  if (newPriceStr !== null) {
+                                    const newPrice = parseFloat(newPriceStr) || 0;
+                                    const diff = newPrice - (order.price || 0);
+                                    updateOrder({ ...order, price: newPrice });
+                                    
+                                    // Update driver's total collected (they are already in history so status is Entregado)
+                                    const driver = drivers.find(d => d.id === selectedDriverHistory.id);
+                                    if (driver) {
+                                      updateDriver({
+                                        ...driver,
+                                        totalCollected: (driver.totalCollected || 0) + diff
+                                      });
+                                    }
+                                  }
+                                }}
+                                className="text-emerald-400 hover:text-emerald-600"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => {
+                                const newPriceStr = window.prompt('Asignar precio:');
+                                if (newPriceStr !== null) {
+                                  const newPrice = parseFloat(newPriceStr) || 0;
+                                  updateOrder({ ...order, price: newPrice });
+                                  
+                                  const driver = drivers.find(d => d.id === selectedDriverHistory.id);
+                                  if (driver) {
+                                    updateDriver({
+                                      ...driver,
+                                      totalCollected: (driver.totalCollected || 0) + newPrice
+                                    });
+                                  }
+                                }
+                              }}
+                              className="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border border-dashed border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 transition-colors w-fit"
+                            >
+                              + Precio
+                            </button>
+                          )}
+                        </div>
+                        {order.assignedAt && (
+                          <div className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                            <Clock className="w-3 h-3" />
+                            {new Date(order.assignedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex flex-col gap-1 mt-1">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <User className="w-4 h-4 text-gray-400" />
