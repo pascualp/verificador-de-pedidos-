@@ -117,7 +117,7 @@ export function CentralDashboard({
                           <span className="font-black text-lg text-gray-800">#{order.orderNumber}</span>
                           {order.price !== undefined ? (
                             <div className="flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
-                              <span className="text-emerald-700 font-bold text-xs">${order.price.toFixed(2)}</span>
+                              <span className="text-emerald-700 font-bold text-xs">{order.price === 0 ? "Pagado" : "$" + order.price.toFixed(2)}</span>
                               <button 
                                 onClick={() => {
                                   const newPriceStr = window.prompt('Editar precio:', order.price?.toString());
@@ -481,7 +481,7 @@ export function CentralDashboard({
                     <span className="font-bold">#{order.orderNumber}</span>
                     {order.price !== undefined ? (
                       <div className="flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
-                        <span className="text-emerald-700 font-black text-xs">${order.price.toFixed(2)}</span>
+                        <span className="text-emerald-700 font-black text-xs">{order.price === 0 ? "Pagado" : "$" + order.price.toFixed(2)}</span>
                         <button 
                           onClick={() => {
                             const newPrice = window.prompt('Editar precio:', order.price?.toString());

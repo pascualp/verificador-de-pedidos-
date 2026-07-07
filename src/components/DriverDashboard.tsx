@@ -198,7 +198,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                           <span className="font-black text-xl text-gray-900">#{order.orderNumber}</span>
                           {order.price !== undefined && (
                             <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg font-black text-lg shadow-sm border border-emerald-200">
-                              ${order.price.toFixed(2)}
+                              {order.price === 0 ? "Pagado" : "$" + order.price.toFixed(2)}
                             </span>
                           )}
                         </div>
