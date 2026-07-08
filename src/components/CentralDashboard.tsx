@@ -1,10 +1,11 @@
 import { AppConfig, Driver, Order } from '../types';
-import { Package, MapPin, Clock, User, Plus, Edit2, Trash2, Check, X, TreePalm, Pizza, Zap, Eye, EyeOff, Webhook, RotateCcw } from 'lucide-react';
+import { Package, MapPin, Clock, User, Plus, Edit2, Trash2, Check, X, TreePalm, Pizza, Zap, Eye, EyeOff, Webhook, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
 import { TimeRemaining } from './TimeRemaining';
 import { WebhookSettings } from './WebhookSettings';
+import { RestaurantDashboard } from './RestaurantDashboard';
 
 export function CentralDashboard({ 
   drivers, 
@@ -14,7 +15,9 @@ export function CentralDashboard({
   orders, 
   updateOrder,
   appConfig,
-  updateAppConfig
+  updateAppConfig,
+  deleteOrder,
+  addOrder
 }: { 
   drivers: Driver[], 
   updateDriver: (d: Driver) => void, 
@@ -23,7 +26,9 @@ export function CentralDashboard({
   orders?: Order[], 
   updateOrder?: (o: Order) => void,
   appConfig: AppConfig,
-  updateAppConfig: (config: AppConfig) => void
+  updateAppConfig: (config: AppConfig) => void,
+  deleteOrder?: (id: string) => void,
+  addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number) => void
 }) {
   const activeDrivers = drivers.filter(d => d.status === 'Repartiendo');
   const totalActiveOrders = activeDrivers.reduce((sum, d) => sum + d.activeOrders, 0);
@@ -36,7 +41,7 @@ export function CentralDashboard({
   const [editPassword, setEditPassword] = useState('');
   const [editRestaurantId, setEditRestaurantId] = useState('restaurant1');
   const [hiddenRestaurants, setHiddenRestaurants] = useState<Record<string, boolean>>({});
-  const [currentView, setCurrentView] = useState<'dashboard' | 'webhooks'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'restaurant1' | 'restaurant2' | 'webhooks'>('dashboard');
 
   const toggleVisibility = (restId: string) => {
     setHiddenRestaurants(prev => ({ ...prev, [restId]: !prev[restId] }));
@@ -62,6 +67,7 @@ export function CentralDashboard({
   };
 
   const RestaurantColumn = ({ title, restId, icon: Icon, themeColor }: { title: string, restId: string, icon: any, themeColor: 'orange' | 'rose' }) => {
+    const [isLibresCollapsed, setIsLibresCollapsed] = useState(true);
     const restDrivers = drivers.filter(d => (d.restaurantId === restId) || (d.restaurantId === 'ambos') || (!d.restaurantId && restId === 'restaurant1'));
     const active = restDrivers.filter(d => d.status === 'Repartiendo');
     const free = restDrivers.filter(d => d.status === 'Libre');
@@ -200,7 +206,20 @@ export function CentralDashboard({
                         <span>{driver.name}</span>
                         {driver.password && <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded border border-white/30 lowercase tracking-normal font-medium" title="Contraseña">🔑 {driver.password}</span>}
                       </div>
-                      {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`¿Cambiar estado de ${driver.name} a ${driver.status === 'Libre' ? 'Repartiendo' : 'Libre'}?`)) {
+                              updateDriver({ ...driver, status: driver.status === 'Libre' ? 'Repartiendo' : 'Libre' });
+                            }
+                          }}
+                          className={`text-[10px] px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity ${driver.status === 'Libre' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}
+                        >
+                          {driver.status}
+                        </button>
+                        {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
+                      </div>
                     </div>
                     <div className="p-4">
                       <div className="flex items-center justify-between">
@@ -298,12 +317,19 @@ export function CentralDashboard({
           </div>
 
           <div className={`rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col ${containerColors[themeColor]}`}>
-            <div className="bg-green-50 border-b border-green-100 p-4">
+            <div 
+              className="bg-green-50 border-b border-green-100 p-4 flex items-center justify-between cursor-pointer select-none hover:bg-green-100/50 transition-colors"
+              onClick={() => setIsLibresCollapsed(!isLibresCollapsed)}
+            >
               <h3 className="font-semibold text-green-900 flex items-center gap-2">
                 <User className="w-5 h-5 text-green-600" />
                 Libres ({free.length})
               </h3>
+              <button className="text-green-700 transition-colors">
+                {isLibresCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+              </button>
             </div>
+            {!isLibresCollapsed && (
             <div className="divide-y divide-gray-100">
               {free.length === 0 ? (
                 <div className="p-6 text-center text-gray-500 text-sm bg-white/50">No hay repartidores libres.</div>
@@ -315,7 +341,20 @@ export function CentralDashboard({
                         <span>{driver.name}</span>
                         {driver.password && <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded border border-white/30 lowercase tracking-normal font-medium" title="Contraseña">🔑 {driver.password}</span>}
                       </div>
-                      {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`¿Cambiar estado de ${driver.name} a ${driver.status === 'Libre' ? 'Repartiendo' : 'Libre'}?`)) {
+                              updateDriver({ ...driver, status: driver.status === 'Libre' ? 'Repartiendo' : 'Libre' });
+                            }
+                          }}
+                          className={`text-[10px] px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity ${driver.status === 'Libre' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}
+                        >
+                          {driver.status}
+                        </button>
+                        {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
+                      </div>
                     </div>
                     <div className="p-4 flex items-center justify-between">
                       <div className="min-w-0 flex-1">
@@ -375,6 +414,7 @@ export function CentralDashboard({
                 ))
               )}
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -395,9 +435,23 @@ export function CentralDashboard({
           <div className="flex bg-white border border-gray-200 p-1 rounded-xl shadow-sm h-[42px] items-center">
             <button 
               onClick={() => setCurrentView('dashboard')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${currentView === 'dashboard' ? 'bg-cyan-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${currentView === 'dashboard' ? 'bg-cyan-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Dashboard
+            </button>
+            <button 
+              onClick={() => setCurrentView('restaurant1')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${currentView === 'restaurant1' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <TreePalm className="w-4 h-4" />
+              Tropical
+            </button>
+            <button 
+              onClick={() => setCurrentView('restaurant2')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${currentView === 'restaurant2' ? 'bg-rose-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <Pizza className="w-4 h-4" />
+              s'Estatua
             </button>
             <button 
               onClick={() => setCurrentView('webhooks')}
@@ -427,6 +481,17 @@ export function CentralDashboard({
 
       {currentView === 'webhooks' ? (
         <WebhookSettings config={appConfig} onUpdate={updateAppConfig} />
+      ) : currentView === 'restaurant1' || currentView === 'restaurant2' ? (
+        <RestaurantDashboard
+            drivers={drivers.filter(d => (d.restaurantId === currentView || d.restaurantId === 'ambos' || (!d.restaurantId && currentView === 'restaurant1')) && !d.isHidden)} 
+            updateDriver={updateDriver} 
+            themeColor={currentView === 'restaurant1' ? 'orange' : 'rose'}
+            orders={orders?.filter(o => o.restaurantId === currentView)}
+            updateOrder={updateOrder}
+            deleteOrder={deleteOrder}
+            addOrder={addOrder}
+            restaurantId={currentView}
+        />
       ) : (
         <>
           {showAddForm && (

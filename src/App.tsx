@@ -447,6 +447,8 @@ export default function App() {
             updateOrder={updateOrder}
             appConfig={appConfig}
             updateAppConfig={updateAppConfig}
+            deleteOrder={deleteOrder}
+            addOrder={addOrder}
           />
         )}
       </main>
