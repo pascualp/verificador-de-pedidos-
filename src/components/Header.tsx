@@ -8,7 +8,7 @@ export function Header({ role, setRole }: { role: 'restaurant1' | 'restaurant2' 
 
   const getRoleLabel = () => {
     if (role === 'restaurant1') return 'Restaurante Tropical';
-    if (role === 'restaurant2') return 'Pizzería S^tatua';
+    if (role === 'restaurant2') return "s'Estatua";
     if (role === 'central') return 'Central';
     return '';
   };

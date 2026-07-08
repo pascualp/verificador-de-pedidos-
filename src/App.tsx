@@ -8,6 +8,17 @@ import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff, Bike, Download } fr
 import { db } from './firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, getDocFromServer } from 'firebase/firestore';
 
+
+const sanitizeForFirestore = <T extends Record<string, any>>(obj: T): T => {
+  const sanitized: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
+
 export default function App() {
   const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
     const errInfo: FirestoreErrorInfo = {
@@ -144,7 +155,7 @@ export default function App() {
 
   const updateDriver = async (updatedDriver: Driver) => {
     try {
-      await setDoc(doc(db, 'drivers', updatedDriver.id), updatedDriver);
+      await setDoc(doc(db, 'drivers', updatedDriver.id), sanitizeForFirestore(updatedDriver));
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `drivers/${updatedDriver.id}`);
     }
@@ -152,7 +163,7 @@ export default function App() {
 
   const updateOrder = async (updatedOrder: Order) => {
     try {
-      await setDoc(doc(db, 'orders', updatedOrder.id), updatedOrder);
+      await setDoc(doc(db, 'orders', updatedOrder.id), sanitizeForFirestore(updatedOrder));
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `orders/${updatedOrder.id}`);
     }
@@ -186,7 +197,7 @@ export default function App() {
       password: password || undefined
     };
     try {
-      await setDoc(doc(db, 'drivers', newDriver.id), newDriver);
+      await setDoc(doc(db, 'drivers', newDriver.id), sanitizeForFirestore(newDriver));
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `drivers/${newDriver.id}`);
     }
@@ -206,7 +217,7 @@ export default function App() {
       price
     };
     try {
-      await setDoc(doc(db, 'orders', newOrder.id), newOrder);
+      await setDoc(doc(db, 'orders', newOrder.id), sanitizeForFirestore(newOrder));
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `orders/${newOrder.id}`);
     }
@@ -230,14 +241,14 @@ export default function App() {
         setRole('restaurant1');
         setAppMode('restaurant');
         setPendingRole(null);
-      } else if (pw === 'statua' || pw === 'pizzeria s^tatua' || pw === 'restaurante2') {
+      } else if (pw === "statua" || pw === "pizzeria s^tatua" || pw === 'restaurante2') {
         localStorage.setItem('delivery_role', 'restaurant2');
         localStorage.setItem('dumoh_app_mode', 'restaurant');
         setRole('restaurant2');
         setAppMode('restaurant');
         setPendingRole(null);
       } else {
-        setError('Contraseña incorrecta. Usa "tropical" o "statua".');
+        setError(`Contraseña incorrecta. Usa "tropical" o "statua".`);
       }
     } else if (roleToCheck === 'driver') {
       const matchedDriver = drivers.find(d => d.password && String(d.password).trim() === password.trim());
@@ -417,7 +428,7 @@ export default function App() {
           />
         ) : role === 'restaurant1' || role === 'restaurant2' ? (
           <RestaurantDashboard 
-            drivers={drivers.filter(d => (d.restaurantId === role || (!d.restaurantId && role === 'restaurant1')) && !d.isHidden)} 
+            drivers={drivers.filter(d => (d.restaurantId === role || d.restaurantId === 'ambos' || (!d.restaurantId && role === 'restaurant1')) && !d.isHidden)} 
             updateDriver={updateDriver} 
             themeColor={role === 'restaurant1' ? 'orange' : 'rose'}
             orders={orders.filter(o => o.restaurantId === role)}

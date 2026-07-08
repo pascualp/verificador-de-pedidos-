@@ -34,6 +34,7 @@ export function CentralDashboard({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editPassword, setEditPassword] = useState('');
+  const [editRestaurantId, setEditRestaurantId] = useState('restaurant1');
   const [hiddenRestaurants, setHiddenRestaurants] = useState<Record<string, boolean>>({});
   const [currentView, setCurrentView] = useState<'dashboard' | 'webhooks'>('dashboard');
 
@@ -60,7 +61,7 @@ export function CentralDashboard({
   };
 
   const RestaurantColumn = ({ title, restId, icon: Icon, themeColor }: { title: string, restId: string, icon: any, themeColor: 'orange' | 'rose' }) => {
-    const restDrivers = drivers.filter(d => (d.restaurantId === restId) || (!d.restaurantId && restId === 'restaurant1'));
+    const restDrivers = drivers.filter(d => (d.restaurantId === restId) || (d.restaurantId === 'ambos') || (!d.restaurantId && restId === 'restaurant1'));
     const active = restDrivers.filter(d => d.status === 'Repartiendo');
     const free = restDrivers.filter(d => d.status === 'Libre');
     const isHidden = hiddenRestaurants[restId];
@@ -204,21 +205,38 @@ export function CentralDashboard({
                       <div className="flex items-center justify-between">
                         <div className="min-w-0 flex-1">
                           {editingId === driver.id ? (
-                            <div className="flex items-center gap-1 mb-1">
+                            <div className="flex flex-col mb-1">
                               <input 
                                 type="text" 
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
-                                className="border border-gray-300 rounded px-2 py-0.5 text-sm w-32 outline-none focus:border-cyan-500 bg-white"
+                                className="border border-gray-300 rounded px-2 py-0.5 text-sm w-full outline-none focus:border-cyan-500 bg-white mb-1"
+                                placeholder="Nombre"
                                 autoFocus
                               />
-                              <button onClick={() => handleEditSave(driver)} className="text-green-600 hover:text-green-700 p-1 bg-white rounded shadow-sm"><Check className="w-4 h-4" /></button>
-                              <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 p-1 bg-white rounded shadow-sm"><X className="w-4 h-4" /></button>
+                              <div className="flex gap-1 mb-1">
+                                <input 
+                                  type="text" 
+                                  value={editPassword}
+                                  onChange={(e) => setEditPassword(e.target.value)}
+                                  className="border border-gray-300 rounded px-2 py-0.5 text-sm w-24 outline-none focus:border-cyan-500 bg-white"
+                                  placeholder="Clave"
+                                />
+                                <select value={editRestaurantId} onChange={(e) => setEditRestaurantId(e.target.value)} className="border border-gray-300 rounded px-2 py-0.5 text-xs flex-1 outline-none focus:border-cyan-500 bg-white">
+                                  <option value="restaurant1">Tropical</option>
+                                  <option value="restaurant2">s'Estatua</option>
+                                  <option value="ambos">Ambos</option>
+                                </select>
+                              </div>
+                              <div className="flex gap-1">
+                                <button onClick={() => handleEditSave(driver)} className="text-white bg-green-500 hover:bg-green-600 px-2 py-0.5 text-xs font-bold rounded shadow-sm flex items-center gap-1"><Check className="w-3 h-3" /> Guardar</button>
+                                <button onClick={() => setEditingId(null)} className="text-gray-600 bg-gray-200 hover:bg-gray-300 px-2 py-0.5 text-xs font-bold rounded shadow-sm flex items-center gap-1"><X className="w-3 h-3" /> Cancelar</button>
+                              </div>
                             </div>
                           ) : (
                             <div className="font-medium flex items-center gap-2">
                               <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); setEditPassword(driver.password || ""); setEditRestaurantId(driver.restaurantId || "restaurant1"); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
                                 <button onClick={() => updateDriver({ ...driver, isHidden: !driver.isHidden })} className={`transition-colors ${driver.isHidden ? 'text-gray-400 hover:text-gray-600' : 'text-gray-400 hover:text-cyan-600'}`} title={driver.isHidden ? "Mostrar a restaurantes" : "Ocultar a restaurantes"}>
                                   {driver.isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                 </button>
@@ -318,6 +336,11 @@ export function CentralDashboard({
                                 className="border border-gray-300 rounded px-2 py-1 text-sm w-24 outline-none focus:border-cyan-500 bg-white"
                                 placeholder="Contraseña"
                               />
+                              <select value={editRestaurantId} onChange={(e) => setEditRestaurantId(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 outline-none focus:border-cyan-500 bg-white">
+                                <option value="restaurant1">Tropical</option>
+                                <option value="restaurant2">s'Estatua</option>
+                                <option value="ambos">Ambos</option>
+                              </select>
                             </div>
                             <div className="flex items-center gap-2">
                               <button onClick={() => handleEditSave(driver)} className="text-white bg-green-500 hover:bg-green-600 px-3 py-1 text-xs font-bold rounded shadow-sm flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Guardar</button>
@@ -327,7 +350,7 @@ export function CentralDashboard({
                         ) : (
                           <div className="font-medium flex items-center gap-2">
                             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                              <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); setEditPassword(driver.password || ''); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => { setEditingId(driver.id); setEditName(driver.name); setEditPassword(driver.password || ''); setEditRestaurantId(driver.restaurantId || 'restaurant1'); }} className="text-gray-400 hover:text-cyan-600 transition-colors" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
                               <button onClick={() => updateDriver({ ...driver, isHidden: !driver.isHidden })} className={`transition-colors ${driver.isHidden ? 'text-gray-400 hover:text-gray-600' : 'text-gray-400 hover:text-cyan-600'}`} title={driver.isHidden ? "Mostrar a restaurantes" : "Ocultar a restaurantes"}>
                                 {driver.isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                               </button>
@@ -448,7 +471,8 @@ export function CentralDashboard({
                 className="w-full border border-gray-300 rounded-xl px-4 py-2 text-base outline-none focus:border-cyan-500 bg-white"
               >
                 <option value="restaurant1">Restaurante Tropical</option>
-                <option value="restaurant2">Pizzería S^tatua</option>
+                <option value="restaurant2">s'Estatua</option>
+                <option value="ambos">Ambos Restaurantes</option>
               </select>
             </div>
             <button 
@@ -464,7 +488,7 @@ export function CentralDashboard({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <RestaurantColumn title="Restaurante Tropical" restId="restaurant1" icon={TreePalm} themeColor="orange" />
-        <RestaurantColumn title="Pizzería S^tatua" restId="restaurant2" icon={Pizza} themeColor="rose" />
+        <RestaurantColumn title="s'Estatua" restId="restaurant2" icon={Pizza} themeColor="rose" />
       </div>
 
       {orders && orders.filter(o => o.status === 'En Cola').length > 0 && (
