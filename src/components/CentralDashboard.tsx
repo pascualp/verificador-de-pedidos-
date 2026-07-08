@@ -54,7 +54,8 @@ export function CentralDashboard({
       updateDriver({ 
         ...driver, 
         name: editName.trim(), 
-        password: editPassword.trim() || undefined 
+        password: editPassword.trim() || undefined,
+        restaurantId: editRestaurantId
       });
     }
     setEditingId(null);

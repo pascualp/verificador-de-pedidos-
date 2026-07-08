@@ -61,5 +61,6 @@ export interface Order {
   assignedAt?: string;
   prepTime?: number;
   price?: number;
+  paymentMethod?: 'efectivo' | 'tarjeta';
 }
 

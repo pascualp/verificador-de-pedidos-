@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Driver, Order } from '../types';
-import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft } from 'lucide-react';
+import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft, CreditCard, Banknote } from 'lucide-react';
 
 export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, onBack }: { drivers: Driver[], updateDriver: (d: Driver) => void, orders?: Order[], updateOrder?: (o: Order) => void, onBack: () => void }) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(() => {
@@ -8,6 +8,8 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
   });
   const [driverPasswordInput, setDriverPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
+
 
   const handleSelectDriver = (id: string | null) => {
     setSelectedDriverId(id);
@@ -39,6 +41,34 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
     const delivered = driver.totalCollected || 0;
     const active = (orders || []).filter(o => o.driverId === driver.id && o.status === 'Asignado').reduce((sum, o) => sum + (o.price || 0), 0);
     return delivered + active;
+  };
+
+  
+  const handleCompleteIndividualOrder = (order: Order, paymentMethod: 'efectivo' | 'tarjeta' | 'pagado') => {
+    const isEfectivo = paymentMethod === 'efectivo';
+    const amount = isEfectivo ? (order.price || 0) : 0;
+    
+    if (updateOrder) {
+      updateOrder({
+        ...order,
+        status: 'Entregado',
+        paymentMethod: paymentMethod === 'pagado' ? undefined : paymentMethod
+      });
+    }
+
+    if (updateDriver && selectedDriver) {
+      const remainingActive = (orders || []).filter(o => o.driverId === selectedDriver.id && o.status === 'Asignado' && o.id !== order.id).length;
+      updateDriver({
+        ...selectedDriver,
+        status: remainingActive === 0 ? 'Libre' : 'Repartiendo',
+        activeOrders: remainingActive,
+        totalOrders: (selectedDriver.totalOrders || 0) + 1,
+        totalCollected: (selectedDriver.totalCollected || 0) + amount,
+        lastUpdated: new Date().toISOString()
+      });
+    }
+
+    setCompletingOrderId(null);
   };
 
   const handleMarkAsFree = (driver: Driver) => {
@@ -235,19 +265,57 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                             </a>
                           </div>
                         )}
+                        
+                        <div className="mt-2 pt-3 border-t border-gray-100">
+                          {completingOrderId === order.id ? (
+                            <div className="flex flex-col gap-2">
+                              <p className="text-sm font-bold text-gray-800 text-center mb-1">¿Cómo se pagó?</p>
+                              {order.price === 0 ? (
+                                <button
+                                  onClick={() => handleCompleteIndividualOrder(order, 'pagado')}
+                                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2"
+                                >
+                                  <CheckCircle className="w-5 h-5" /> Confirmar Entrega
+                                </button>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleCompleteIndividualOrder(order, 'efectivo')}
+                                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-1"
+                                  >
+                                    <Banknote className="w-5 h-5" /> Efectivo
+                                  </button>
+                                  <button
+                                    onClick={() => handleCompleteIndividualOrder(order, 'tarjeta')}
+                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-1"
+                                  >
+                                    <CreditCard className="w-5 h-5" /> Tarjeta
+                                  </button>
+                                </div>
+                              )}
+                              <button
+                                onClick={() => setCompletingOrderId(null)}
+                                className="w-full text-gray-500 text-sm mt-1 py-1 font-medium hover:text-gray-800"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setCompletingOrderId(order.id)}
+                              className="w-full border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 py-2.5 rounded-lg font-black text-sm uppercase tracking-wide flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <CheckCircle className="w-5 h-5" /> Marcar Entregado
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <button
-                onClick={() => handleMarkAsFree(selectedDriver)}
-                className="w-full bg-green-500 hover:bg-green-600 text-white py-5 rounded-2xl text-xl font-black shadow-lg shadow-green-200 transition-all flex items-center justify-center gap-3 transform active:scale-95"
-              >
-                <CheckCircle className="w-7 h-7" />
-                TERMINAR REPARTO
-              </button>
+              
             </>
           ) : (
             <div className="text-center py-12 flex flex-col items-center gap-4">
