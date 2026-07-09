@@ -13,6 +13,7 @@ export interface Driver {
   isHidden?: boolean;
   password?: string;
   totalCollected?: number;
+  canSeePendingOrders?: boolean;
 }
 
 export type OrderStatus = 'En Cola' | 'Asignado' | 'Entregado' | 'Cancelado';

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Driver, Order } from '../types';
 import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft, CreditCard, Banknote, Pizza, TreePalm } from 'lucide-react';
+import { TimeRemaining } from './TimeRemaining';
 
 export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, onBack }: { drivers: Driver[], updateDriver: (d: Driver) => void, orders?: Order[], updateOrder?: (o: Order) => void, onBack: () => void }) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(() => {
@@ -355,6 +356,67 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
           )}
         </div>
       </div>
+
+      {selectedDriver.canSeePendingOrders && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden flex flex-col mt-6">
+          <div className="bg-amber-500/10 border-b border-amber-500/20 p-4 flex items-center justify-between">
+            <h3 className="font-bold text-amber-950 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-amber-600 animate-pulse" />
+              Pedidos en Cola / Preparación
+            </h3>
+            <span className="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-0.5 rounded-full border border-amber-200">
+              {orders ? orders.filter(o => o.status === 'En Cola' && (selectedDriver.restaurantId === 'ambos' || o.restaurantId === selectedDriver.restaurantId)).length : 0} pendientes
+            </span>
+          </div>
+          
+          <div className="p-4 flex flex-col gap-3">
+            {(!orders || orders.filter(o => o.status === 'En Cola' && (selectedDriver.restaurantId === 'ambos' || o.restaurantId === selectedDriver.restaurantId)).length === 0) ? (
+              <div className="text-center py-6 text-gray-500 text-sm font-medium">
+                No hay pedidos en cola en este momento.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3.5">
+                {orders
+                  .filter(o => o.status === 'En Cola' && (selectedDriver.restaurantId === 'ambos' || o.restaurantId === selectedDriver.restaurantId))
+                  .map(order => (
+                    <div key={order.id} className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 shadow-sm relative flex flex-col gap-1.5 hover:bg-gray-50 transition-colors">
+                      {order.prepTime && (
+                        <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
+                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-lg text-gray-900">#{order.orderNumber}</span>
+                        {order.restaurantId === 'restaurant1' ? (
+                          <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-xs px-2 py-0.5 rounded-full font-bold border border-orange-100">
+                            <TreePalm className="w-3 h-3 text-orange-500" />
+                            Tropical
+                          </span>
+                        ) : order.restaurantId === 'restaurant2' ? (
+                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 text-xs px-2 py-0.5 rounded-full font-bold border border-rose-100">
+                            <Pizza className="w-3 h-3 text-rose-500" />
+                            s'Estatua
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-gray-400" />
+                        {order.customerName}
+                      </div>
+
+                      {order.address && (
+                        <div className="text-xs text-gray-600 font-medium flex items-start gap-1.5 mt-0.5">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                          <span className="line-clamp-2">{order.address}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
       <div className="text-center text-gray-400 text-xs mt-4">
         Historial total: {selectedDriver.totalOrders || 0} pedidos entregados
