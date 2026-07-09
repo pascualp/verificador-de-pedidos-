@@ -216,8 +216,8 @@ export function CentralDashboard({
                           }}
                           className={`text-[10px] px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity ${driver.status === 'Libre' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}
                         >
-                          {driver.status === 'Repartiendo' && orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado').length 
-                            ? orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').map(o => '#' + o.orderNumber).join(', ') 
+                          {driver.status === 'Repartiendo' && orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado' && o.restaurantId === restId).length 
+                            ? orders.filter(o => o.driverId === driver.id && o.status === 'Asignado' && o.restaurantId === restId).map(o => '#' + o.orderNumber).join(', ') 
                             : driver.status}
                         </button>
                         {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
@@ -289,7 +289,9 @@ export function CentralDashboard({
                         </div>
                         <div className="flex items-center gap-3 ml-4">
                           <div className="flex flex-col items-end">
-                            <span className="text-xl font-bold leading-none">{driver.activeOrders}</span>
+                            <span className="text-xl font-bold leading-none">
+                              {orders ? orders.filter(o => o.driverId === driver.id && o.status === 'Asignado' && o.restaurantId === restId).length : 0}
+                            </span>
                             <span className="text-xs text-gray-500 font-medium">pedidos</span>
                           </div>
                           <div className="bg-blue-100 p-2 rounded-lg bg-opacity-80">
@@ -298,11 +300,11 @@ export function CentralDashboard({
                         </div>
                       </div>
                       
-                      {orders && orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').length > 0 && (
+                      {orders && orders.filter(o => o.driverId === driver.id && o.status === 'Asignado' && o.restaurantId === restId).length > 0 && (
                         <div className="mt-3 pt-3 border-t border-gray-100/50">
                           <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Pedidos Asignados:</div>
                           <div className="flex flex-wrap gap-2">
-                            {orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').map(o => (
+                            {orders.filter(o => o.driverId === driver.id && o.status === 'Asignado' && o.restaurantId === restId).map(o => (
                               <div key={o.id} className="bg-white px-2.5 py-1 rounded-md shadow-sm border border-gray-200 text-xs flex items-center gap-2">
                                 <span className="font-bold text-gray-700">#{o.orderNumber}</span>
                                 <span className="text-gray-500">{o.customerName}</span>
@@ -353,8 +355,8 @@ export function CentralDashboard({
                           }}
                           className={`text-[10px] px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity ${driver.status === 'Libre' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}
                         >
-                          {driver.status === 'Repartiendo' && orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado').length 
-                            ? orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').map(o => '#' + o.orderNumber).join(', ') 
+                          {driver.status === 'Repartiendo' && orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado' && o.restaurantId === restId).length 
+                            ? orders.filter(o => o.driverId === driver.id && o.status === 'Asignado' && o.restaurantId === restId).map(o => '#' + o.orderNumber).join(', ') 
                             : driver.status}
                         </button>
                         {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
