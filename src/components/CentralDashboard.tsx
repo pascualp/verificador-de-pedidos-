@@ -216,7 +216,9 @@ export function CentralDashboard({
                           }}
                           className={`text-[10px] px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity ${driver.status === 'Libre' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}
                         >
-                          {driver.status}
+                          {driver.status === 'Repartiendo' && orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado').length 
+                            ? orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').map(o => '#' + o.orderNumber).join(', ') 
+                            : driver.status}
                         </button>
                         {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
                       </div>
@@ -351,7 +353,9 @@ export function CentralDashboard({
                           }}
                           className={`text-[10px] px-2 py-0.5 rounded-full hover:opacity-80 transition-opacity ${driver.status === 'Libre' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}
                         >
-                          {driver.status}
+                          {driver.status === 'Repartiendo' && orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado').length 
+                            ? orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').map(o => '#' + o.orderNumber).join(', ') 
+                            : driver.status}
                         </button>
                         {driver.isHidden && <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1"><EyeOff className="w-3 h-3" /> Oculto a Restaurantes</span>}
                       </div>

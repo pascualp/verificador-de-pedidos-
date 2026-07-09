@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Driver, Order } from '../types';
-import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft, CreditCard, Banknote } from 'lucide-react';
+import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft, CreditCard, Banknote, Pizza, TreePalm } from 'lucide-react';
 
 export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, onBack }: { drivers: Driver[], updateDriver: (d: Driver) => void, orders?: Order[], updateOrder?: (o: Order) => void, onBack: () => void }) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(() => {
@@ -199,19 +199,21 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
           </div>
           <h2 className="text-2xl font-black">{selectedDriver.name}</h2>
           <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-gray-700 rounded-full text-xs font-bold uppercase tracking-widest text-gray-300">
-            {selectedDriver.status}
+            {orders && orders.some(o => o.driverId === selectedDriver.id && o.status === 'Asignado') ? 'Repartiendo' : selectedDriver.status}
           </div>
         </div>
 
         <div className="p-6 flex flex-col gap-6">
-          {selectedDriver.status === 'Repartiendo' ? (
+          {selectedDriver.status === 'Repartiendo' || (orders && orders.some(o => o.driverId === selectedDriver.id && o.status === 'Asignado')) ? (
             <>
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 flex items-center gap-4">
                 <div className="bg-blue-100 p-3 rounded-lg">
                   <Package className="w-8 h-8 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-blue-900">{selectedDriver.activeOrders}</div>
+                  <div className="text-2xl font-black text-blue-900">
+                    {orders ? orders.filter(o => o.driverId === selectedDriver.id && o.status === 'Asignado').length : selectedDriver.activeOrders}
+                  </div>
                   <div className="text-sm text-blue-700 font-medium uppercase tracking-wide">Pedidos activos</div>
                 </div>
               </div>
@@ -225,7 +227,22 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                     {orders.filter(o => o.driverId === selectedDriver.id && o.status === 'Asignado').map(order => (
                       <div key={order.id} className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm flex flex-col gap-3">
                         <div className="flex justify-between items-start">
-                          <span className="font-black text-xl text-gray-900">#{order.orderNumber}</span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-xl text-gray-900">#{order.orderNumber}</span>
+                              {order.restaurantId === 'restaurant1' ? (
+                                <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-xs px-2 py-0.5 rounded-full font-bold border border-orange-100">
+                                  <TreePalm className="w-3 h-3 text-orange-500" />
+                                  Tropical
+                                </span>
+                              ) : order.restaurantId === 'restaurant2' ? (
+                                <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 text-xs px-2 py-0.5 rounded-full font-bold border border-rose-100">
+                                  <Pizza className="w-3 h-3 text-rose-500" />
+                                  s'Estatua
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
                           {order.price !== undefined && (
                             <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg font-black text-lg shadow-sm border border-emerald-200">
                               {order.price === 0 ? "Pagado" : "$" + order.price.toFixed(2)}
