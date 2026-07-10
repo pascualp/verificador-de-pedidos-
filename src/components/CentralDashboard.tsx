@@ -54,6 +54,34 @@ export function CentralDashboard({
     return delivered + active;
   };
 
+  const handleCloseShift = (driver: Driver) => {
+    const total = getDriverTotal(driver);
+    
+    let breakdownStr = '';
+    if (orders) {
+      const shiftOrders = orders.filter(o => 
+        o.driverId === driver.id && 
+        o.status === 'Entregado' &&
+        (!driver.shiftStartedAt || new Date(o.assignedAt || o.createdAt) >= new Date(driver.shiftStartedAt))
+      );
+      
+      const cashCount = shiftOrders.filter(o => o.paymentMethod === 'efectivo' && (o.price || 0) > 0).length;
+      const cardCount = shiftOrders.filter(o => o.paymentMethod === 'tarjeta').length;
+      const paidCount = shiftOrders.filter(o => !o.paymentMethod || o.price === 0).length;
+      
+      breakdownStr = `\n\nDesglose de entregas:\n- Efectivo: ${cashCount}\n- Tarjeta: ${cardCount}\n- Ya Pagado: ${paidCount}`;
+    }
+
+    if(window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal: $${total.toFixed(2)}${breakdownStr}`)) {
+      updateDriver({ 
+        ...driver, 
+        totalCollected: 0, 
+        shiftStartedAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString() 
+      });
+    }
+  };
+
   const handleEditSave = (driver: Driver) => {
     if (editName.trim()) {
       updateDriver({ 
@@ -225,6 +253,7 @@ export function CentralDashboard({
           handleEditSave={handleEditSave}
           hiddenRestaurants={hiddenRestaurants}
           toggleVisibility={toggleVisibility}
+          handleCloseShift={handleCloseShift}
         />
         <RestaurantColumn 
           title="s'Estatua" 
@@ -250,6 +279,7 @@ export function CentralDashboard({
           handleEditSave={handleEditSave}
           hiddenRestaurants={hiddenRestaurants}
           toggleVisibility={toggleVisibility}
+          handleCloseShift={handleCloseShift}
         />
       </div>
 
@@ -335,6 +365,7 @@ function RestaurantColumn({
   handleEditSave,
   hiddenRestaurants,
   toggleVisibility,
+  handleCloseShift,
 }: {
   title: string;
   restId: string;
@@ -359,6 +390,7 @@ function RestaurantColumn({
   handleEditSave: (driver: Driver) => void;
   hiddenRestaurants: Record<string, boolean>;
   toggleVisibility: (restId: string) => void;
+  handleCloseShift: (driver: Driver) => void;
 }) {
   const [isLibresCollapsed, setIsLibresCollapsed] = useState(true);
   const restDrivers = drivers.filter(d => (d.restaurantId === restId) || (d.restaurantId === 'ambos') || (!d.restaurantId && restId === 'restaurant1'));
@@ -577,11 +609,7 @@ function RestaurantColumn({
                                 ${getDriverTotal(driver).toFixed(2)}
                               </span>
                               <button 
-                                onClick={() => {
-                                  if(window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal: $${getDriverTotal(driver).toFixed(2)}`)) {
-                                    updateDriver({ ...driver, totalCollected: 0, lastUpdated: new Date().toISOString() });
-                                  }
-                                }}
+                                onClick={() => handleCloseShift(driver)}
                                 className="text-gray-400 hover:text-emerald-600 transition-colors"
                                 title="Cerrar Turno (Caja)"
                               >

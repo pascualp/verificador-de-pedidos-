@@ -97,10 +97,27 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
 
   const handleCloseShift = (driver: Driver) => {
     const total = getDriverTotal(driver);
-    if (window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal recaudado: $${total.toFixed(2)}\n\nEsta acción reiniciará la caja a $0.00.`)) {
+    
+    let breakdownStr = '';
+    if (orders) {
+      const shiftOrders = orders.filter(o => 
+        o.driverId === driver.id && 
+        o.status === 'Entregado' &&
+        (!driver.shiftStartedAt || new Date(o.assignedAt || o.createdAt) >= new Date(driver.shiftStartedAt))
+      );
+      
+      const cashCount = shiftOrders.filter(o => o.paymentMethod === 'efectivo' && (o.price || 0) > 0).length;
+      const cardCount = shiftOrders.filter(o => o.paymentMethod === 'tarjeta').length;
+      const paidCount = shiftOrders.filter(o => !o.paymentMethod || o.price === 0).length;
+      
+      breakdownStr = `\n\nDesglose de entregas:\n- Efectivo: ${cashCount}\n- Tarjeta: ${cardCount}\n- Ya Pagado: ${paidCount}`;
+    }
+
+    if (window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal recaudado: $${total.toFixed(2)}${breakdownStr}\n\nEsta acción reiniciará la caja a $0.00.`)) {
       updateDriver({
         ...driver,
         totalCollected: 0,
+        shiftStartedAt: new Date().toISOString(),
         lastUpdated: new Date().toISOString()
       });
     }

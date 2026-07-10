@@ -66,6 +66,34 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
     return delivered + active;
   };
 
+  const handleCloseShift = (driver: Driver) => {
+    const total = getDriverTotal(driver);
+    
+    let breakdownStr = '';
+    if (orders) {
+      const shiftOrders = orders.filter(o => 
+        o.driverId === driver.id && 
+        o.status === 'Entregado' &&
+        (!driver.shiftStartedAt || new Date(o.assignedAt || o.createdAt) >= new Date(driver.shiftStartedAt))
+      );
+      
+      const cashCount = shiftOrders.filter(o => o.paymentMethod === 'efectivo' && (o.price || 0) > 0).length;
+      const cardCount = shiftOrders.filter(o => o.paymentMethod === 'tarjeta').length;
+      const paidCount = shiftOrders.filter(o => !o.paymentMethod || o.price === 0).length;
+      
+      breakdownStr = `\n\nDesglose de entregas:\n- Efectivo: ${cashCount}\n- Tarjeta: ${cardCount}\n- Ya Pagado: ${paidCount}`;
+    }
+
+    if (window.confirm(`¿Cerrar turno de ${driver.name}?\nCaja: $${total.toFixed(2)}${breakdownStr}\n\nEsto reiniciará su caja a $0.00.`)) {
+      updateDriver({ 
+        ...driver, 
+        totalCollected: 0, 
+        shiftStartedAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString() 
+      });
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -320,11 +348,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                         Ver detalle
                       </button>
                       <button 
-                          onClick={() => {
-                            if(window.confirm(`¿Cerrar turno de ${driver.name}?\nCaja: $${getDriverTotal(driver).toFixed(2)}\n\nEsto reiniciará su caja a $0.00.`)) {
-                              updateDriver({ ...driver, totalCollected: 0, lastUpdated: new Date().toISOString() });
-                            }
-                          }}
+                          onClick={() => handleCloseShift(driver)}
                           className="text-[10px] mt-1 text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 w-fit bg-emerald-50 px-2 py-0.5 rounded transition-colors border border-emerald-100"
                         >
                           <RotateCcw className="w-3 h-3" />

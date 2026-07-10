@@ -14,6 +14,7 @@ export interface Driver {
   password?: string;
   totalCollected?: number;
   canSeePendingOrders?: boolean;
+  shiftStartedAt?: string;
 }
 
 export type OrderStatus = 'En Cola' | 'Asignado' | 'Entregado' | 'Cancelado';
