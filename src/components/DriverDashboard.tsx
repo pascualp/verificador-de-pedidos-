@@ -74,7 +74,11 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
 
   const handleMarkAsFree = (driver: Driver) => {
     const assignedOrders = orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado') || [];
-    const shiftTotal = assignedOrders.reduce((sum, o) => sum + (o.price || 0), 0);
+    const shiftTotal = assignedOrders.reduce((sum, o) => {
+      // Only sum up orders that are not marked as paid and have a price
+      if (o.isPaid || o.price === 0) return sum;
+      return sum + (o.price || 0);
+    }, 0);
 
     updateDriver({
       ...driver,
@@ -195,7 +199,41 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
     );
   }
 
-  if (!selectedDriver) return null;
+  if (!selectedDriver) {
+    if (drivers.length === 0) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+            <p className="text-gray-500 text-sm">Cargando repartidores...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-6 max-w-md mx-auto text-center py-12 px-4">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center gap-4">
+          <div className="bg-red-50 p-3 rounded-full text-red-500">
+            <User className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900">Sesión Expirada o Repartidor Eliminado</h3>
+          <p className="text-gray-500 text-sm">
+            El repartidor con el que habías iniciado sesión ya no existe en el sistema o fue eliminado por el administrador.
+          </p>
+          <button
+            onClick={() => {
+              localStorage.removeItem('dumoh_selected_driver_v2');
+              setSelectedDriverId(null);
+            }}
+            className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 rounded-xl transition-colors shadow-sm"
+          >
+            Volver a la selección de repartidores
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 max-w-md mx-auto">
@@ -263,7 +301,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                           </div>
                           {order.price !== undefined && (
                             <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg font-black text-lg shadow-sm border border-emerald-200">
-                              {order.price === 0 ? "Pagado" : "$" + order.price.toFixed(2)}
+                              {(order.price === 0 || order.isPaid) ? "Pagado" : "$" + order.price.toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -305,7 +343,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                           {completingOrderId === order.id ? (
                             <div className="flex flex-col gap-2">
                               <p className="text-sm font-bold text-gray-800 text-center mb-1">¿Cómo se pagó?</p>
-                              {order.price === 0 ? (
+                              {(order.price === 0 || order.isPaid) ? (
                                 <button
                                   onClick={() => handleCompleteIndividualOrder(order, 'pagado')}
                                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2"

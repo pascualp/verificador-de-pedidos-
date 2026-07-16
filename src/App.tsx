@@ -43,6 +43,8 @@ export default function App() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [appConfig, setAppConfig] = useState<AppConfig>({ webhookEnabled: false });
+  const initialVersionRef = React.useRef<number | null>(null);
+  const hasReceivedFirstSnapshot = React.useRef(false);
 
   useEffect(() => {
     const testConnection = async () => {
@@ -58,7 +60,21 @@ export default function App() {
 
     const unsubscribeConfig = onSnapshot(doc(db, 'config', 'general'), (doc) => {
       if (doc.exists()) {
-        setAppConfig(doc.data() as AppConfig);
+        const data = doc.data() as AppConfig;
+        setAppConfig(data);
+        
+        if (!hasReceivedFirstSnapshot.current) {
+          initialVersionRef.current = data.appVersion || null;
+          hasReceivedFirstSnapshot.current = true;
+        } else {
+          // It's a subsequent snapshot
+          if (data.appVersion !== undefined) {
+            if (initialVersionRef.current === null || data.appVersion > initialVersionRef.current) {
+              console.log("New version detected. Reloading...");
+              window.location.reload();
+            }
+          }
+        }
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'config/general');

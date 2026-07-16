@@ -48,6 +48,7 @@ export interface FirestoreErrorInfo {
 export interface AppConfig {
   webhookUrl?: string;
   webhookEnabled: boolean;
+  appVersion?: number;
 }
 
 export interface Order {
@@ -64,5 +65,6 @@ export interface Order {
   prepTime?: number;
   price?: number;
   paymentMethod?: 'efectivo' | 'tarjeta';
+  isPaid?: boolean;
 }
 

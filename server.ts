@@ -12,6 +12,20 @@ async function startServer() {
 
   app.use(cors());
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // Request logger for debugging
+  app.use((req, res, next) => {
+    if (req.url.startsWith('/api')) {
+      console.log(`[${new Date().toISOString()}] Incoming API Request: ${req.method} ${req.url}`);
+    }
+    next();
+  });
+
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", message: "Servidor activo", timestamp: new Date().toISOString() });
+  });
 
   // Initialize Firebase using the client config
   let db: any = null;
@@ -28,13 +42,26 @@ async function startServer() {
     console.error("Error initializing Firebase:", error);
   }
 
-  // Webhook for receiving orders
-  app.post("/api/webhook/orders", async (req, res) => {
+  // Webhook for receiving orders (handles both with and without trailing slash)
+  const webhookHandler = async (req: any, res: any) => {
+    // Log all incoming webhook requests
+    console.log(`[${new Date().toISOString()}] Webhook Request: ${req.method} ${req.path}`);
+
+    if (req.method === "GET") {
+      return res.status(200).json({ 
+        status: "online", 
+        endpoint: "Webhook de Pedidos",
+        instructions: "Para enviar un pedido, usa el método POST con un cuerpo JSON. Este endpoint acepta: orderNumber, customerName, customerPhone, restaurantId, address, price (o importe) e isPaid (o pagado).",
+        example_url: `${req.protocol}://${req.get('host')}${req.path}`
+      });
+    }
+
     try {
-      const { orderNumber, customerName, customerPhone, restaurantId, address } = req.body;
+      const { orderNumber, customerName, customerPhone, restaurantId, address, price, isPaid, importe, pagado } = req.body;
       
       if (!orderNumber || !restaurantId) {
-        return res.status(400).json({ error: "Missing required fields" });
+        console.warn("[Webhook] Petición inválida: faltan orderNumber o restaurantId", req.body);
+        return res.status(400).json({ error: "Missing required fields (orderNumber, restaurantId)" });
       }
 
       const orderData = {
@@ -45,21 +72,30 @@ async function startServer() {
         restaurantId,
         status: "En Cola",
         createdAt: new Date().toISOString(),
+        price: price !== undefined ? Number(price) : (importe !== undefined ? Number(importe) : undefined),
+        isPaid: isPaid !== undefined ? Boolean(isPaid) : (pagado !== undefined ? Boolean(pagado) : undefined),
       };
 
       if (db) {
         const orderRef = await addDoc(collection(db, "orders"), orderData);
         // Also add the ID field
         await setDoc(doc(db, "orders", orderRef.id), { ...orderData, id: orderRef.id });
-        res.status(201).json({ success: true, orderId: orderRef.id });
+        console.log(`[Webhook] Pedido #${orderNumber} guardado correctamente con ID: ${orderRef.id}`);
+        res.status(201).json({ success: true, orderId: orderRef.id, message: "Pedido recibido y guardado" });
       } else {
+        console.error("[Webhook] Error: Database no inicializada");
         res.status(500).json({ error: "Database not initialized" });
       }
     } catch (error: any) {
-      console.error("Webhook error:", error);
+      console.error("[Webhook Error]:", error);
       res.status(500).json({ error: error.message });
     }
-  });
+  };
+
+  app.post("/api/webhook/orders", webhookHandler);
+  app.post("/api/webhook/orders/", webhookHandler);
+  app.get("/api/webhook/orders", webhookHandler);
+  app.get("/api/webhook/orders/", webhookHandler);
 
   // Test webhook endpoint
   app.post("/api/webhook/test", async (req, res) => {

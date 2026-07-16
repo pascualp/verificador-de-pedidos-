@@ -137,6 +137,18 @@ export function CentralDashboard({
           </div>
           
           <div className="flex gap-2 items-center w-full sm:w-auto">
+            <button 
+              onClick={() => {
+                if (window.confirm('¿Forzar actualización de la aplicación en todos los dispositivos abiertos?')) {
+                  updateAppConfig({ ...appConfig, appVersion: (appConfig.appVersion || 0) + 1 });
+                }
+              }}
+              className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-200 px-3 py-2 rounded-lg shadow-sm h-[42px] flex items-center justify-center gap-2 transition-colors flex-1 sm:flex-none"
+              title="Forzar actualización en todos los dispositivos"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span className="text-xs sm:text-sm font-bold">Act. Remota</span>
+            </button>
             <div className="bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm h-[42px] flex flex-col justify-center flex-1 sm:flex-none">
               <div className="text-[10px] text-gray-500 font-medium uppercase tracking-wider leading-tight">Repartidores</div>
               <div className="text-sm font-black leading-tight">{activeDrivers.length} / {drivers.length} act.</div>
@@ -297,7 +309,7 @@ export function CentralDashboard({
                     <span className="font-bold">#{order.orderNumber}</span>
                     {order.price !== undefined ? (
                       <div className="flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
-                        <span className="text-emerald-700 font-black text-xs">{order.price === 0 ? "Pagado" : "$" + order.price.toFixed(2)}</span>
+                        <span className="text-emerald-700 font-black text-xs">{(order.price === 0 || order.isPaid) ? "Pagado" : "$" + order.price.toFixed(2)}</span>
                         <button 
                           onClick={() => {
                             const newPrice = window.prompt('Editar precio:', order.price?.toString());
@@ -450,7 +462,7 @@ function RestaurantColumn({
                         <span className="font-black text-lg text-gray-800">#{order.orderNumber}</span>
                         {order.price !== undefined ? (
                           <div className="flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
-                            <span className="text-emerald-700 font-bold text-xs">{order.price === 0 ? "Pagado" : "$" + order.price.toFixed(2)}</span>
+                            <span className="text-emerald-700 font-bold text-xs">{(order.price === 0 || order.isPaid) ? "Pagado" : "$" + order.price.toFixed(2)}</span>
                             <button 
                               onClick={() => {
                                 const newPriceStr = window.prompt('Editar precio:', order.price?.toString());

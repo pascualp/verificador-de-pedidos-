@@ -40,7 +40,13 @@ export function WebhookSettings({ config, onUpdate }: WebhookSettingsProps) {
     }
   };
 
-  const inboundUrl = `${window.location.origin}/api/webhook/orders`;
+  // The user must provide the public (ais-pre) URL to the programmer, not the dev (ais-dev) URL
+  // because the dev URL is protected by AI Studio authentication and returns 403/302.
+  const baseUrl = window.location.origin.includes('ais-dev') 
+    ? window.location.origin.replace('ais-dev', 'ais-pre')
+    : window.location.origin;
+    
+  const inboundUrl = `${baseUrl}/api/webhook/orders`;
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testOrderResult, setTestOrderResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -56,7 +62,9 @@ export function WebhookSettings({ config, onUpdate }: WebhookSettingsProps) {
           customerName: "Pedido Tropical de Prueba",
           customerPhone: "123456789",
           address: "Calle Tropical 123",
-          restaurantId: "restaurant1"
+          restaurantId: "restaurant1",
+          price: 15.50,
+          isPaid: false
         })
       });
       const data = await response.json();
@@ -97,17 +105,31 @@ export function WebhookSettings({ config, onUpdate }: WebhookSettingsProps) {
             Usa esta URL para enviar pedidos desde sistemas externos (POS, E-commerce).
           </p>
           
-          <div className="flex gap-2">
-            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-mono text-gray-700 truncate">
-              {inboundUrl}
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-mono text-gray-700 truncate">
+                {inboundUrl}
+              </div>
+              <button 
+                onClick={copyToClipboard}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+              >
+                {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                {copied ? 'Copiado' : 'Copiar'}
+              </button>
             </div>
-            <button 
-              onClick={copyToClipboard}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-            >
-              {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-              {copied ? 'Copiado' : 'Copiar'}
-            </button>
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+              <div className="text-xs text-amber-800">
+                <p className="font-bold mb-1 uppercase tracking-wider text-[10px]">⚠️ Importante para el programador:</p>
+                <ul className="list-disc ml-4 space-y-1">
+                  <li><strong>Endpoint API Real</strong>: Esta URL es un punto final de API directo.</li>
+                  <li><strong>Método POST</strong>: Solo acepta peticiones tipo POST.</li>
+                  <li><strong>Protocolo HTTPS</strong>: Usa siempre https:// (no http).</li>
+                  <li><strong>Sin Redirecciones</strong>: Si recibes un 302, asegúrate de que el sistema externo no esté omitiendo la barra final o que no esté intentando seguir redirecciones de navegador. La URL exacta debe ser: <br/><code className="bg-amber-100 px-1 rounded select-all">{inboundUrl}/</code></li>
+                </ul>
+              </div>
+            </div>
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
@@ -126,7 +148,9 @@ export function WebhookSettings({ config, onUpdate }: WebhookSettingsProps) {
   "customerName": "Juan Perez",
   "customerPhone": "1122334455",
   "address": "Calle Falsa 123",
-  "restaurantId": "restaurant1"
+  "restaurantId": "restaurant1",
+  "price": 25.00,
+  "isPaid": false
 }`}
                 </pre>
               </div>
