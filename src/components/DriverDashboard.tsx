@@ -436,7 +436,11 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                   .map(order => (
                     <div key={order.id} className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 shadow-sm relative flex flex-col gap-1.5 hover:bg-gray-50 transition-colors">
                       {order.prepTime && (
-                        <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
+                        <TimeRemaining 
+                          startTime={order.createdAt} 
+                          prepTimeMinutes={order.prepTime}
+                          isPrepared={order.isPrepared}
+                        />
                       )}
                       
                       <div className="flex items-center gap-2">

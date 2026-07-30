@@ -74,6 +74,8 @@ async function startServer() {
         createdAt: new Date().toISOString(),
         price: price !== undefined ? Number(price) : (importe !== undefined ? Number(importe) : undefined),
         isPaid: isPaid !== undefined ? Boolean(isPaid) : (pagado !== undefined ? Boolean(pagado) : undefined),
+        prepTime: 10,
+        isPrepared: false,
       };
 
       if (db) {

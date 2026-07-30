@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, CheckCircle2 } from 'lucide-react';
 
-export function TimeRemaining({ startTime, prepTimeMinutes }: { startTime: string; prepTimeMinutes: number }) {
+export function TimeRemaining({ startTime, prepTimeMinutes, isPrepared, onAutoPrepared }: { startTime: string; prepTimeMinutes: number; isPrepared?: boolean; onAutoPrepared?: () => void }) {
   const [remaining, setRemaining] = useState('');
   const [isOverdue, setIsOverdue] = useState(false);
 
   useEffect(() => {
+    if (isPrepared) return;
+
     const updateTimer = () => {
       const start = new Date(startTime).getTime();
       const now = new Date().getTime();
@@ -13,11 +15,12 @@ export function TimeRemaining({ startTime, prepTimeMinutes }: { startTime: strin
       const diff = targetTime - now;
 
       if (diff <= 0) {
-        setIsOverdue(true);
-        const overdueDiff = Math.abs(diff);
-        const minutes = Math.floor(overdueDiff / 60000);
-        const seconds = Math.floor((overdueDiff % 60000) / 1000);
-        setRemaining(`-${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        if (!isOverdue) {
+          setIsOverdue(true);
+          if (onAutoPrepared) {
+             onAutoPrepared();
+          }
+        }
         return;
       }
 
@@ -38,13 +41,13 @@ export function TimeRemaining({ startTime, prepTimeMinutes }: { startTime: strin
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [startTime, prepTimeMinutes]);
+  }, [startTime, prepTimeMinutes, isPrepared, isOverdue, onAutoPrepared]);
 
-  if (isOverdue) {
+  if (isPrepared || isOverdue) {
     return (
-      <div className="absolute -top-2.5 -right-2.5 bg-red-100 text-red-800 border border-red-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 animate-pulse">
-        <Clock className="w-3 h-3" />
-        <span className="font-mono text-[10px] font-black uppercase tracking-wider">Atrasado: {remaining}</span>
+      <div className="absolute -top-2.5 -right-2.5 bg-green-100 text-green-800 border border-green-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+        <CheckCircle2 className="w-3 h-3" />
+        <span className="font-mono text-[10px] font-black uppercase tracking-wider">PREPARADO</span>
       </div>
     );
   }

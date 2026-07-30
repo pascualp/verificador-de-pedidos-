@@ -66,5 +66,6 @@ export interface Order {
   price?: number;
   paymentMethod?: 'efectivo' | 'tarjeta';
   isPaid?: boolean;
+  isPrepared?: boolean;
 }
 

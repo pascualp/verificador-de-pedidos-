@@ -455,7 +455,12 @@ function RestaurantColumn({
                 {orders.filter(o => o.restaurantId === restId && o.status === 'En Cola').map(order => (
                   <div key={order.id} className="bg-white p-3 rounded-xl border border-orange-200 shadow-sm relative flex flex-col">
                     {order.prepTime && (
-                      <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
+                      <TimeRemaining 
+                        startTime={order.createdAt} 
+                        prepTimeMinutes={order.prepTime}
+                        isPrepared={order.isPrepared}
+                        onAutoPrepared={() => updateOrder && updateOrder({ ...order, isPrepared: true })}
+                      />
                     )}
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex flex-col gap-1">

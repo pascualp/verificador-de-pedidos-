@@ -197,21 +197,52 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
               {orders.filter(o => o.status === 'En Cola').map(order => (
                 <div key={order.id} className="bg-white p-4 rounded-xl border border-orange-200 shadow-sm relative">
                   {order.prepTime && (
-                    <TimeRemaining startTime={order.createdAt} prepTimeMinutes={order.prepTime} />
+                    <TimeRemaining 
+                      startTime={order.createdAt} 
+                      prepTimeMinutes={order.prepTime} 
+                      isPrepared={order.isPrepared}
+                      onAutoPrepared={() => updateOrder && updateOrder({ ...order, isPrepared: true })}
+                    />
                   )}
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex flex-col gap-1">
                       <span className="font-black text-lg">#{order.orderNumber}</span>
-                      {order.price !== undefined ? (
-                        <div className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 w-fit">
-                          <span className="text-emerald-700 font-bold text-sm">{(order.price === 0 || order.isPaid) ? "Pagado" : "$" + order.price.toFixed(2)}</span>
+                      <div className="flex gap-2">
+                        {order.price !== undefined ? (
+                          <div className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 w-fit">
+                            <span className="text-emerald-700 font-bold text-sm">{(order.price === 0 || order.isPaid) ? "Pagado" : "$" + order.price.toFixed(2)}</span>
+                            <button 
+                              onClick={() => {
+                                const newPriceStr = window.prompt('Editar precio:', order.price?.toString());
+                                if (newPriceStr !== null) {
+                                  const newPrice = parseFloat(newPriceStr) || 0;
+                                  const diff = newPrice - (order.price || 0);
+                                  if (updateOrder) updateOrder({ ...order, price: newPrice });
+                                  
+                                  // If delivered, update driver's total collected
+                                  if (order.status === 'Entregado' && order.driverId) {
+                                    const driver = drivers.find(d => d.id === order.driverId);
+                                    if (driver) {
+                                      updateDriver({
+                                        ...driver,
+                                        totalCollected: (driver.totalCollected || 0) + diff
+                                      });
+                                    }
+                                  }
+                                }
+                              }}
+                              className="text-emerald-400 hover:text-emerald-600"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
                           <button 
                             onClick={() => {
-                              const newPriceStr = window.prompt('Editar precio:', order.price?.toString());
+                              const newPriceStr = window.prompt('Asignar precio:');
                               if (newPriceStr !== null) {
                                 const newPrice = parseFloat(newPriceStr) || 0;
-                                const diff = newPrice - (order.price || 0);
-                                updateOrder({ ...order, price: newPrice });
+                                if (updateOrder) updateOrder({ ...order, price: newPrice });
                                 
                                 // If delivered, update driver's total collected
                                 if (order.status === 'Entregado' && order.driverId) {
@@ -219,42 +250,41 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                                   if (driver) {
                                     updateDriver({
                                       ...driver,
-                                      totalCollected: (driver.totalCollected || 0) + diff
+                                      totalCollected: (driver.totalCollected || 0) + newPrice
                                     });
                                   }
                                 }
                               }
                             }}
-                            className="text-emerald-400 hover:text-emerald-600"
+                            className="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border border-dashed border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 transition-colors w-fit"
                           >
-                            <Edit2 className="w-3 h-3" />
+                            + Precio
                           </button>
-                        </div>
-                      ) : (
-                        <button 
+                        )}
+                        {!order.isPrepared && (
+                          <button
+                            onClick={() => updateOrder && updateOrder({ ...order, isPrepared: true })}
+                            className="text-[10px] bg-green-50 text-green-600 px-2 py-1 rounded border border-green-200 hover:bg-green-100 transition-colors w-fit flex items-center gap-1"
+                          >
+                            <Check className="w-3 h-3" /> Preparado
+                          </button>
+                        )}
+                        <button
                           onClick={() => {
-                            const newPriceStr = window.prompt('Asignar precio:');
-                            if (newPriceStr !== null) {
-                              const newPrice = parseFloat(newPriceStr) || 0;
-                              updateOrder({ ...order, price: newPrice });
-                              
-                              // If delivered, update driver's total collected
-                              if (order.status === 'Entregado' && order.driverId) {
-                                const driver = drivers.find(d => d.id === order.driverId);
-                                if (driver) {
-                                  updateDriver({
-                                    ...driver,
-                                    totalCollected: (driver.totalCollected || 0) + newPrice
-                                  });
-                                }
+                            const newTimeStr = window.prompt('Tiempo de preparación (minutos):', order.prepTime?.toString() || '10');
+                            if (newTimeStr !== null) {
+                              const newTime = parseInt(newTimeStr, 10);
+                              if (!isNaN(newTime) && updateOrder) {
+                                updateOrder({ ...order, prepTime: newTime });
                               }
                             }
                           }}
-                          className="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border border-dashed border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 transition-colors w-fit"
+                          className="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border border-dashed border-gray-200 hover:bg-gray-100 transition-colors w-fit flex items-center gap-1"
+                          title="Cambiar tiempo de preparación"
                         >
-                          + Precio
+                          <Clock className="w-3 h-3" /> Editar
                         </button>
-                      )}
+                      </div>
                     </div>
                     
                   </div>

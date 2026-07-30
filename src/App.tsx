@@ -229,8 +229,9 @@ export default function App() {
       address,
       status: 'En Cola',
       createdAt: new Date().toISOString(),
-      prepTime,
-      price
+      prepTime: prepTime !== undefined ? prepTime : 10,
+      price,
+      isPrepared: false
     };
     try {
       await setDoc(doc(db, 'orders', newOrder.id), sanitizeForFirestore(newOrder));
