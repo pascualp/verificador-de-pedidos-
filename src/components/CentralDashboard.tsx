@@ -43,7 +43,12 @@ export function CentralDashboard({
   const [editCanSeePending, setEditCanSeePending] = useState(false);
   const [hiddenRestaurants, setHiddenRestaurants] = useState<Record<string, boolean>>({});
   const [currentView, setCurrentView] = useState<'dashboard' | 'restaurant1' | 'restaurant2' | 'webhooks' | 'history'>('dashboard');
-  const [historyDate, setHistoryDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
+  const [startDate, setStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toLocaleDateString('en-CA');
+  });
+  const [endDate, setEndDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
   const [historyFilter, setHistoryFilter] = useState<'all' | 'restaurant1' | 'restaurant2'>('all');
 
   const toggleVisibility = (restId: string) => {
@@ -180,14 +185,14 @@ export function CentralDashboard({
         <WebhookSettings config={appConfig} onUpdate={updateAppConfig} />
       ) : currentView === 'history' ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="bg-indigo-50 p-2.5 rounded-xl">
                 <FileText className="w-6 h-6 text-indigo-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Historial General de Pedidos</h2>
-                <p className="text-sm text-gray-500">Consulta todos los pedidos finalizados del sistema.</p>
+                <h2 className="text-xl font-bold text-gray-900">Historial & Reportes</h2>
+                <p className="text-sm text-gray-500">Consulta el rendimiento por rango de fechas.</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -201,114 +206,197 @@ export function CentralDashboard({
                 <option value="restaurant2">s'Estatua</option>
               </select>
               <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
-                <span className="text-sm font-bold text-gray-600">Fecha:</span>
-                <input 
-                  type="date" 
-                  value={historyDate}
-                  onChange={(e) => setHistoryDate(e.target.value)}
-                  className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium outline-none focus:border-indigo-500 shadow-sm"
-                />
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-gray-400 uppercase">Desde</span>
+                  <input 
+                    type="date" 
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 shadow-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
+                  <span className="text-[10px] font-black text-gray-400 uppercase">Hasta</span>
+                  <input 
+                    type="date" 
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-indigo-500 shadow-sm"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            {(() => {
-              const historyOrders = (orders || []).filter(o => {
-                const isPast = o.status === 'Entregado' || o.status === 'Cancelado';
-                if (!isPast) return false;
-                if (historyFilter !== 'all' && o.restaurantId !== historyFilter) return false;
-                const orderDate = new Date(o.assignedAt || o.createdAt).toLocaleDateString('en-CA');
-                return orderDate === historyDate;
-              }).sort((a, b) => new Date(b.assignedAt || b.createdAt).getTime() - new Date(a.assignedAt || a.createdAt).getTime());
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-3 space-y-4">
+              {(() => {
+                const historyOrders = (orders || []).filter(o => {
+                  const isPast = o.status === 'Entregado' || o.status === 'Cancelado';
+                  if (!isPast) return false;
+                  if (historyFilter !== 'all' && o.restaurantId !== historyFilter) return false;
+                  const orderDate = new Date(o.assignedAt || o.createdAt).toLocaleDateString('en-CA');
+                  return orderDate >= startDate && orderDate <= endDate;
+                }).sort((a, b) => new Date(b.assignedAt || b.createdAt).getTime() - new Date(a.assignedAt || a.createdAt).getTime());
 
-              if (historyOrders.length === 0) {
+                if (historyOrders.length === 0) {
+                  return (
+                    <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-20 text-center">
+                      <FileText className="w-20 h-20 text-gray-100 mx-auto mb-4" />
+                      <h3 className="text-xl font-bold text-gray-400">No hay registros para este periodo</h3>
+                      <p className="text-sm text-gray-300">Intenta ampliar el rango de fechas.</p>
+                    </div>
+                  );
+                }
+
                 return (
-                  <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-20 text-center">
-                    <FileText className="w-20 h-20 text-gray-100 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-400">No hay registros para este día</h3>
-                    <p className="text-sm text-gray-300">Intenta seleccionar otra fecha o restaurante.</p>
-                  </div>
-                );
-              }
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {historyOrders.map(order => (
+                      <div key={order.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 group relative">
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col">
+                            <span className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${order.restaurantId === 'restaurant1' ? 'text-orange-400' : 'text-rose-400'}`}>
+                              {order.restaurantId === 'restaurant1' ? 'Tropical' : "s'Estatua"}
+                            </span>
+                            <span className="text-2xl font-black text-gray-900 leading-none">#{order.orderNumber}</span>
+                          </div>
+                          <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${order.status === 'Entregado' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+                            {order.status}
+                          </div>
+                        </div>
 
-              return (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {historyOrders.map(order => (
-                    <div key={order.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 group relative">
-                      <div className="flex justify-between items-start">
-                        <div className="flex flex-col">
-                          <span className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${order.restaurantId === 'restaurant1' ? 'text-orange-400' : 'text-rose-400'}`}>
-                            {order.restaurantId === 'restaurant1' ? 'Tropical' : "s'Estatua"}
-                          </span>
-                          <span className="text-2xl font-black text-gray-900 leading-none">#{order.orderNumber}</span>
+                        <div className="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100/50">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Total</span>
+                            <span className="text-lg font-black text-emerald-700 leading-none">
+                              {order.price !== undefined ? `$${order.price.toFixed(2)}` : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Fecha</span>
+                            <span className="text-[11px] font-bold text-gray-700 leading-none flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-gray-400" />
+                              {new Date(order.assignedAt || order.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} {new Date(order.assignedAt || order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${order.status === 'Entregado' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
-                          {order.status}
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100/50">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Total</span>
-                          <span className="text-lg font-black text-emerald-700 leading-none">
-                            {order.price !== undefined ? `$${order.price.toFixed(2)}` : 'N/A'}
-                          </span>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <User className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span className="text-sm font-bold truncate">{order.customerName || "Cliente"}</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Finalizado</span>
-                          <span className="text-sm font-bold text-gray-700 leading-none flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-gray-400" />
-                            {new Date(order.assignedAt || order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <User className="w-4 h-4 text-gray-400 shrink-0" />
-                          <span className="text-sm font-bold truncate">{order.customerName || "Cliente"}</span>
-                        </div>
-                        {order.address && (
-                          <div className="flex items-start gap-2 text-gray-500">
-                            <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                            <span className="text-xs leading-relaxed line-clamp-2">{order.address}</span>
+                        {order.driverId && (
+                          <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center">
+                                <Bike className="w-3.5 h-3.5 text-cyan-600" />
+                              </div>
+                              <span className="text-xs font-bold text-gray-600">
+                                {drivers.find(d => d.id === order.driverId)?.name || "N/A"}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
 
-                      {order.driverId && (
-                        <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center">
-                              <Bike className="w-3.5 h-3.5 text-cyan-600" />
-                            </div>
-                            <span className="text-xs font-bold text-gray-600">
-                              {drivers.find(d => d.id === order.driverId)?.name || "N/A"}
-                            </span>
-                          </div>
-                          <button 
-                            onClick={() => {
-                              if (window.confirm('¿Quieres mover este pedido de vuelta a la cola?')) {
-                                updateOrder?.({
-                                  ...order,
-                                  status: 'En Cola',
-                                  driverId: undefined,
-                                  assignedAt: undefined
-                                });
-                              }
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-indigo-600 hover:underline"
-                          >
-                            Recuperar
-                          </button>
+            {/* Sidebar Report */}
+            <div className="lg:col-span-1 space-y-6">
+              {(() => {
+                const filtered = (orders || []).filter(o => {
+                  const isPast = o.status === 'Entregado' || o.status === 'Cancelado';
+                  if (!isPast) return false;
+                  if (historyFilter !== 'all' && o.restaurantId !== historyFilter) return false;
+                  const orderDate = new Date(o.assignedAt || o.createdAt).toLocaleDateString('en-CA');
+                  return orderDate >= startDate && orderDate <= endDate;
+                });
+
+                const totalOrders = filtered.length;
+                const totalRevenue = filtered.reduce((sum, o) => sum + (o.price || 0), 0);
+                
+                const driverStats: Record<string, { count: number, total: number }> = {};
+                filtered.forEach(o => {
+                  if (o.status !== 'Entregado' || !o.driverId) return;
+                  const driverName = drivers.find(d => d.id === o.driverId)?.name || "N/A";
+                  if (!driverStats[driverName]) driverStats[driverName] = { count: 0, total: 0 };
+                  driverStats[driverName].count++;
+                  driverStats[driverName].total += (o.price || 0);
+                });
+
+                return (
+                  <div className="sticky top-24 space-y-4">
+                    <div className="bg-indigo-600 p-6 rounded-3xl text-white shadow-xl shadow-indigo-100">
+                      <h3 className="text-sm font-black uppercase tracking-widest opacity-70 mb-4">Resumen del Periodo</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="text-4xl font-black">${totalRevenue.toFixed(2)}</div>
+                          <div className="text-[10px] font-bold uppercase opacity-70 mt-1">Ingresos Totales</div>
                         </div>
-                      )}
+                        <div className="flex gap-4 pt-4 border-t border-indigo-500/50">
+                          <div>
+                            <div className="text-xl font-black">{totalOrders}</div>
+                            <div className="text-[10px] font-bold uppercase opacity-70">Pedidos</div>
+                          </div>
+                          <div>
+                            <div className="text-xl font-black">{Object.keys(driverStats).length}</div>
+                            <div className="text-[10px] font-bold uppercase opacity-70">Repartidores</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              );
-            })()}
+
+                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Ingresos por Día</h3>
+                      <div className="space-y-2">
+                        {(() => {
+                          const daily: Record<string, number> = {};
+                          filtered.forEach(o => {
+                            const date = new Date(o.assignedAt || o.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                            daily[date] = (daily[date] || 0) + (o.price || 0);
+                          });
+                          return Object.entries(daily).reverse().map(([date, amount]) => (
+                            <div key={date} className="flex justify-between items-center text-xs">
+                              <span className="font-bold text-gray-500">{date}</span>
+                              <span className="font-black text-gray-800">${amount.toFixed(2)}</span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Desempeño Repartidores</h3>
+                      <div className="space-y-3">
+                        {Object.entries(driverStats).sort((a, b) => b[1].total - a[1].total).map(([name, stats]) => (
+                          <div key={name} className="flex items-center justify-between group">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 group-hover:bg-cyan-50 group-hover:border-cyan-100 transition-colors">
+                                <Bike className="w-4 h-4 text-gray-400 group-hover:text-cyan-600" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-black text-gray-800">{name}</span>
+                                <span className="text-[10px] font-bold text-gray-400">{stats.count} pedidos</span>
+                              </div>
+                            </div>
+                            <span className="text-sm font-black text-emerald-600">${stats.total.toFixed(2)}</span>
+                          </div>
+                        ))}
+                        {Object.keys(driverStats).length === 0 && (
+                          <div className="text-center py-4 text-xs font-bold text-gray-300 uppercase">Sin entregas</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       ) : currentView === 'restaurant1' || currentView === 'restaurant2' ? (
