@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { Driver, Order } from '../types';
-import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X, Edit2, Check } from 'lucide-react';
+import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X, Edit2, Check, Bike } from 'lucide-react';
 import { TimeRemaining } from './TimeRemaining';
 
 export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
@@ -14,6 +14,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
   const [isAddingOrder, setIsAddingOrder] = useState(false);
   const [selectedDriverHistory, setSelectedDriverHistory] = useState<Driver | null>(null);
   const [historyDate, setHistoryDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
+  const [currentTab, setCurrentTab] = useState<'active' | 'history'>('active');
 
   const handleAddOrder = (e: FormEvent) => {
     e.preventDefault();
@@ -102,16 +103,34 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
             <h1 className="text-2xl font-bold tracking-tight">Panel de Restaurante</h1>
             <p className="text-gray-500 text-sm mt-1">Gestión de pedidos y repartidores.</p>
           </div>
-          <button
-            onClick={() => setIsAddingOrder(!isAddingOrder)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${themeColor === 'orange' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'}`}
-          >
-            <Plus className="w-5 h-5" />
-            Nuevo Pedido
-          </button>
+          <div className="flex gap-2">
+            <div className="bg-gray-100 p-1 rounded-xl flex gap-1 h-[42px] items-center">
+              <button
+                onClick={() => setCurrentTab('active')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${currentTab === 'active' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Activos
+              </button>
+              <button
+                onClick={() => setCurrentTab('history')}
+                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${currentTab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Historial
+              </button>
+            </div>
+            <button
+              onClick={() => setIsAddingOrder(!isAddingOrder)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors h-[42px] ${themeColor === 'orange' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'}`}
+            >
+              <Plus className="w-5 h-5" />
+              Nuevo Pedido
+            </button>
+          </div>
         </div>
 
-        {isAddingOrder && (
+        {currentTab === 'active' ? (
+          <>
+            {isAddingOrder && (
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
             <h3 className="text-lg font-bold mb-4">Ingresar Nuevo Pedido</h3>
             <form onSubmit={handleAddOrder} className="flex flex-col md:flex-row gap-4 items-end">
@@ -348,9 +367,131 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
             </div>
           </div>
         )}
+          </>
+        ) : (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-gray-100 p-2.5 rounded-xl">
+                  <Clock className="w-6 h-6 text-gray-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Historial de Pedidos</h2>
+                  <p className="text-sm text-gray-500">Consulta los pedidos finalizados o cancelados.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
+                <span className="text-sm font-bold text-gray-600">Filtrar por fecha:</span>
+                <input 
+                  type="date" 
+                  value={historyDate}
+                  onChange={(e) => setHistoryDate(e.target.value)}
+                  className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {(() => {
+                const historyOrders = (orders || []).filter(o => {
+                  const isPast = o.status === 'Entregado' || o.status === 'Cancelado';
+                  if (!isPast) return false;
+                  const orderDate = new Date(o.assignedAt || o.createdAt).toLocaleDateString('en-CA');
+                  return orderDate === historyDate;
+                }).sort((a, b) => new Date(b.assignedAt || b.createdAt).getTime() - new Date(a.assignedAt || a.createdAt).getTime());
+
+                if (historyOrders.length === 0) {
+                  return (
+                    <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-12 text-center">
+                      <FileText className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+                      <h3 className="text-lg font-bold text-gray-400">No hay registros para esta fecha</h3>
+                      <p className="text-sm text-gray-300">Intenta seleccionar otro día en el calendario.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {historyOrders.map(order => (
+                      <div key={order.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 relative group">
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-black text-gray-400 uppercase tracking-widest mb-0.5">Pedido</span>
+                            <span className="text-2xl font-black text-gray-900 leading-none">#{order.orderNumber}</span>
+                          </div>
+                          <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${order.status === 'Entregado' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+                            {order.status}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100/50">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Total</span>
+                            <span className="text-lg font-black text-emerald-700 leading-none">
+                              {order.price !== undefined ? `$${order.price.toFixed(2)}` : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Asignado</span>
+                            <span className="text-sm font-bold text-gray-700 leading-none flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-gray-400" />
+                              {order.assignedAt ? new Date(order.assignedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <User className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span className="text-sm font-bold truncate">{order.customerName || "Cliente anónimo"}</span>
+                          </div>
+                          {order.address && (
+                            <div className="flex items-start gap-2 text-gray-500">
+                              <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                              <span className="text-xs leading-relaxed line-clamp-2">{order.address}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {order.driverId && (
+                          <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center">
+                                <Bike className="w-3.5 h-3.5 text-cyan-600" />
+                              </div>
+                              <span className="text-xs font-bold text-gray-600">
+                                {drivers.find(d => d.id === order.driverId)?.name || "Eliminado"}
+                              </span>
+                            </div>
+                            <button 
+                              onClick={() => {
+                                if (window.confirm('¿Quieres mover este pedido de vuelta a la cola?')) {
+                                  updateOrder?.({
+                                    ...order,
+                                    status: 'En Cola',
+                                    driverId: undefined,
+                                    assignedAt: undefined
+                                  });
+                                }
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-cyan-600 hover:underline"
+                            >
+                              Mover a cola
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className={currentTab === 'active' ? "" : "hidden"}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {drivers.map(driver => (
           <div key={driver.id} className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col relative group overflow-hidden">
             <div className="px-4 py-2.5 text-white text-sm font-black tracking-widest uppercase shadow-sm bg-cyan-500">
@@ -480,6 +621,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
           </div>
         ))}
       </div>
+    </div>
 
 
       {/* Driver History Modal */}
