@@ -1,5 +1,5 @@
 import { AppConfig, Driver, Order } from '../types';
-import { Package, MapPin, Clock, User, Plus, Edit2, Trash2, Check, X, TreePalm, Pizza, Zap, Eye, EyeOff, Webhook, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Package, MapPin, Clock, User, Plus, Edit2, Trash2, Check, X, TreePalm, Pizza, Zap, Eye, EyeOff, Webhook, RotateCcw, ChevronDown, ChevronUp, Bike, FileText } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
@@ -42,7 +42,9 @@ export function CentralDashboard({
   const [editRestaurantId, setEditRestaurantId] = useState('restaurant1');
   const [editCanSeePending, setEditCanSeePending] = useState(false);
   const [hiddenRestaurants, setHiddenRestaurants] = useState<Record<string, boolean>>({});
-  const [currentView, setCurrentView] = useState<'dashboard' | 'restaurant1' | 'restaurant2' | 'webhooks'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'restaurant1' | 'restaurant2' | 'webhooks' | 'history'>('dashboard');
+  const [historyDate, setHistoryDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'restaurant1' | 'restaurant2'>('all');
 
   const toggleVisibility = (restId: string) => {
     setHiddenRestaurants(prev => ({ ...prev, [restId]: !prev[restId] }));
@@ -134,6 +136,13 @@ export function CentralDashboard({
               <Webhook className="w-4 h-4" />
               Webhooks
             </button>
+            <button 
+              onClick={() => setCurrentView('history')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${currentView === 'history' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <FileText className="w-4 h-4" />
+              Historial
+            </button>
           </div>
           
           <div className="flex gap-2 items-center w-full sm:w-auto">
@@ -169,6 +178,139 @@ export function CentralDashboard({
 
       {currentView === 'webhooks' ? (
         <WebhookSettings config={appConfig} onUpdate={updateAppConfig} />
+      ) : currentView === 'history' ? (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-50 p-2.5 rounded-xl">
+                <FileText className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Historial General de Pedidos</h2>
+                <p className="text-sm text-gray-500">Consulta todos los pedidos finalizados del sistema.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                value={historyFilter}
+                onChange={(e) => setHistoryFilter(e.target.value as any)}
+                className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-indigo-500 shadow-sm"
+              >
+                <option value="all">Todos los Restaurantes</option>
+                <option value="restaurant1">Tropical</option>
+                <option value="restaurant2">s'Estatua</option>
+              </select>
+              <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
+                <span className="text-sm font-bold text-gray-600">Fecha:</span>
+                <input 
+                  type="date" 
+                  value={historyDate}
+                  onChange={(e) => setHistoryDate(e.target.value)}
+                  className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium outline-none focus:border-indigo-500 shadow-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {(() => {
+              const historyOrders = (orders || []).filter(o => {
+                const isPast = o.status === 'Entregado' || o.status === 'Cancelado';
+                if (!isPast) return false;
+                if (historyFilter !== 'all' && o.restaurantId !== historyFilter) return false;
+                const orderDate = new Date(o.assignedAt || o.createdAt).toLocaleDateString('en-CA');
+                return orderDate === historyDate;
+              }).sort((a, b) => new Date(b.assignedAt || b.createdAt).getTime() - new Date(a.assignedAt || a.createdAt).getTime());
+
+              if (historyOrders.length === 0) {
+                return (
+                  <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-20 text-center">
+                    <FileText className="w-20 h-20 text-gray-100 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-400">No hay registros para este día</h3>
+                    <p className="text-sm text-gray-300">Intenta seleccionar otra fecha o restaurante.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {historyOrders.map(order => (
+                    <div key={order.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 group relative">
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col">
+                          <span className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${order.restaurantId === 'restaurant1' ? 'text-orange-400' : 'text-rose-400'}`}>
+                            {order.restaurantId === 'restaurant1' ? 'Tropical' : "s'Estatua"}
+                          </span>
+                          <span className="text-2xl font-black text-gray-900 leading-none">#{order.orderNumber}</span>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${order.status === 'Entregado' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+                          {order.status}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-100/50">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Total</span>
+                          <span className="text-lg font-black text-emerald-700 leading-none">
+                            {order.price !== undefined ? `$${order.price.toFixed(2)}` : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Finalizado</span>
+                          <span className="text-sm font-bold text-gray-700 leading-none flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            {new Date(order.assignedAt || order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <User className="w-4 h-4 text-gray-400 shrink-0" />
+                          <span className="text-sm font-bold truncate">{order.customerName || "Cliente"}</span>
+                        </div>
+                        {order.address && (
+                          <div className="flex items-start gap-2 text-gray-500">
+                            <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                            <span className="text-xs leading-relaxed line-clamp-2">{order.address}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {order.driverId && (
+                        <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center">
+                              <Bike className="w-3.5 h-3.5 text-cyan-600" />
+                            </div>
+                            <span className="text-xs font-bold text-gray-600">
+                              {drivers.find(d => d.id === order.driverId)?.name || "N/A"}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={() => {
+                              if (window.confirm('¿Quieres mover este pedido de vuelta a la cola?')) {
+                                updateOrder?.({
+                                  ...order,
+                                  status: 'En Cola',
+                                  driverId: undefined,
+                                  assignedAt: undefined
+                                });
+                              }
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-indigo-600 hover:underline"
+                          >
+                            Recuperar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
       ) : currentView === 'restaurant1' || currentView === 'restaurant2' ? (
         <RestaurantDashboard
             drivers={drivers.filter(d => (d.restaurantId === currentView || d.restaurantId === 'ambos' || (!d.restaurantId && currentView === 'restaurant1')) && !d.isHidden)} 

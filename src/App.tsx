@@ -6,7 +6,7 @@ import { DriverDashboard } from './components/DriverDashboard';
 import { Driver, Order, AppConfig, OperationType, FirestoreErrorInfo } from './types';
 import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff, Bike, Download } from 'lucide-react';
 import { db } from './firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, getDocFromServer } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, getDocFromServer, query, orderBy, limit } from 'firebase/firestore';
 
 
 const sanitizeForFirestore = <T extends Record<string, any>>(obj: T): T => {
@@ -128,17 +128,18 @@ export default function App() {
     const unsubscribeDrivers = onSnapshot(collection(db, 'drivers'), (snapshot) => {
       const driversData: Driver[] = [];
       snapshot.forEach((doc) => {
-        driversData.push(doc.data() as Driver);
+        driversData.push({ id: doc.id, ...doc.data() } as Driver);
       });
       setDrivers(driversData);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'drivers');
     });
 
-    const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+    const ordersQuery = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(500));
+    const unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
       const ordersData: Order[] = [];
       snapshot.forEach((doc) => {
-        ordersData.push(doc.data() as Order);
+        ordersData.push({ id: doc.id, ...doc.data() } as Order);
       });
       setOrders(ordersData);
     }, (error) => {
