@@ -11,14 +11,24 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
   const [newPrepTime, setNewPrepTime] = useState('');
   const [newPrice, setNewPrice] = useState('');
+  const [priceError, setPriceError] = useState(false);
   const [isAddingOrder, setIsAddingOrder] = useState(false);
   const [selectedDriverHistory, setSelectedDriverHistory] = useState<Driver | null>(null);
   const [historyDate, setHistoryDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
   const [currentTab, setCurrentTab] = useState<'active' | 'history'>('active');
 
+  const isPriceRequired = restaurantId === 'restaurant2';
+
   const handleAddOrder = (e: FormEvent) => {
     e.preventDefault();
     if (restaurantId && addOrder) {
+      if (isPriceRequired && (!newPrice.trim() || isNaN(parseFloat(newPrice)))) {
+        setPriceError(true);
+        alert("El precio es obligatorio para los pedidos de s'Estatua.");
+        return;
+      }
+      setPriceError(false);
+
       // Usar número provisto o auto-generar número de pedido
       let generatedOrderNumber = newOrderNumber.trim();
       if (!generatedOrderNumber) {
@@ -174,16 +184,28 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                   placeholder="Calle, Número, Localidad..."
                 />
               </div>
-              <div className="w-24 shrink-0">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Precio ($)</label>
+              <div className="w-28 shrink-0">
+                <label className={`text-[10px] font-bold uppercase tracking-wider block mb-1.5 ${isPriceRequired ? 'text-rose-600' : 'text-gray-500'}`}>
+                  Precio ($) {isPriceRequired && <span className="text-red-500 font-black">*</span>}
+                </label>
                 <input 
                   type="number"
                   step="0.01"
                   min="0"
+                  required={isPriceRequired}
                   value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-center font-bold"
-                  placeholder="0.00"
+                  onChange={(e) => {
+                    setNewPrice(e.target.value);
+                    if (priceError) setPriceError(false);
+                  }}
+                  className={`w-full border rounded-lg px-3 py-2 outline-none text-center font-bold transition-all ${
+                    priceError 
+                      ? 'border-red-500 ring-2 ring-red-200 bg-red-50' 
+                      : isPriceRequired
+                        ? 'border-rose-300 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                        : 'border-gray-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500'
+                  }`}
+                  placeholder={isPriceRequired ? "Obligatorio" : "0.00"}
                 />
               </div>
               <div className="w-24 shrink-0">
@@ -432,10 +454,10 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                             </span>
                           </div>
                           <div className="flex flex-col items-end">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Asignado</span>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Creado</span>
                             <span className="text-sm font-bold text-gray-700 leading-none flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5 text-gray-400" />
-                              {order.assignedAt ? new Date(order.assignedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                              {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         </div>

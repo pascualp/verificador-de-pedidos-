@@ -273,10 +273,10 @@ export function CentralDashboard({
                             </span>
                           </div>
                           <div className="flex flex-col items-end">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Fecha</span>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Creado</span>
                             <span className="text-[11px] font-bold text-gray-700 leading-none flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5 text-gray-400" />
-                              {new Date(order.assignedAt || order.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} {new Date(order.assignedAt || order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(order.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         </div>
