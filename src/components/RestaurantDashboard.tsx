@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react';
 import { Driver, Order } from '../types';
 import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X, Edit2, Check, Bike } from 'lucide-react';
 import { TimeRemaining } from './TimeRemaining';
+import { addCollected, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
 
 export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
   // New order form state
@@ -52,12 +53,17 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
     const assignedOrders = orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado') || [];
     const shiftTotal = assignedOrders.reduce((sum, o) => sum + (o.price || 0), 0);
 
+    // Repartidor de "ambos": este restaurante solo entrega SUS pedidos. Si aún lleva pedidos del otro restaurante
+    // no pasa a Libre. Para el resto de repartidores todo sigue igual que antes.
+    const isShared = driver.restaurantId === 'ambos';
+    const remaining = isShared ? Math.max(0, (driver.activeOrders || 0) - assignedOrders.length) : 0;
+
     updateDriver({
       ...driver,
-      status: 'Libre',
-      totalOrders: (driver.totalOrders || 0) + driver.activeOrders,
-      activeOrders: 0,
-      totalCollected: (driver.totalCollected || 0) + shiftTotal,
+      status: remaining === 0 ? 'Libre' : 'Repartiendo',
+      totalOrders: (driver.totalOrders || 0) + (isShared ? assignedOrders.length : driver.activeOrders),
+      activeOrders: remaining,
+      ...addCollected(driver, restaurantId || 'restaurant1', shiftTotal),
       lastUpdated: new Date().toISOString()
     });
     
@@ -71,23 +77,16 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
     }
   };
 
-  const getDriverTotal = (driver: Driver) => {
-    const delivered = driver.totalCollected || 0;
-    const active = (orders || []).filter(o => o.driverId === driver.id && o.status === 'Asignado').reduce((sum, o) => sum + (o.price || 0), 0);
-    return delivered + active;
-  };
+  // Caja de ESTE restaurante (no se mezcla con la del otro si el repartidor trabaja en ambos)
+  const getDriverTotal = (driver: Driver) => driverTotal(orders, driver, restaurantId || 'restaurant1');
 
   const handleCloseShift = (driver: Driver) => {
     const total = getDriverTotal(driver);
-    
+
     let breakdownStr = '';
     if (orders) {
-      const shiftOrders = orders.filter(o => 
-        o.driverId === driver.id && 
-        o.status === 'Entregado' &&
-        (!driver.shiftStartedAt || new Date(o.assignedAt || o.createdAt) >= new Date(driver.shiftStartedAt))
-      );
-      
+      const shiftOrders = shiftOrdersFor(orders, driver, restaurantId || 'restaurant1');
+
       const cashCount = shiftOrders.filter(o => o.paymentMethod === 'efectivo' && (o.price || 0) > 0).length;
       const cardCount = shiftOrders.filter(o => o.paymentMethod === 'tarjeta').length;
       const paidCount = shiftOrders.filter(o => !o.paymentMethod || o.price === 0).length;
@@ -96,11 +95,10 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
     }
 
     if (window.confirm(`¿Cerrar turno de ${driver.name}?\nCaja: $${total.toFixed(2)}${breakdownStr}\n\nEsto reiniciará su caja a $0.00.`)) {
-      updateDriver({ 
-        ...driver, 
-        totalCollected: 0, 
-        shiftStartedAt: new Date().toISOString(),
-        lastUpdated: new Date().toISOString() 
+      updateDriver({
+        ...driver,
+        ...closeShiftPatch(driver, restaurantId || 'restaurant1'),
+        lastUpdated: new Date().toISOString()
       });
     }
   };
@@ -266,7 +264,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                                     if (driver) {
                                       updateDriver({
                                         ...driver,
-                                        totalCollected: (driver.totalCollected || 0) + diff
+                                        ...addCollected(driver, restOf(order), diff)
                                       });
                                     }
                                   }
@@ -291,7 +289,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                                   if (driver) {
                                     updateDriver({
                                       ...driver,
-                                      totalCollected: (driver.totalCollected || 0) + newPrice
+                                      ...addCollected(driver, restOf(order), newPrice)
                                     });
                                   }
                                 }
@@ -720,7 +718,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                                     if (driver) {
                                       updateDriver({
                                         ...driver,
-                                        totalCollected: (driver.totalCollected || 0) + diff
+                                        ...addCollected(driver, restOf(order), diff)
                                       });
                                     }
                                   }
@@ -742,7 +740,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                                   if (driver) {
                                     updateDriver({
                                       ...driver,
-                                      totalCollected: (driver.totalCollected || 0) + newPrice
+                                      ...addCollected(driver, restOf(order), newPrice)
                                     });
                                   }
                                 }

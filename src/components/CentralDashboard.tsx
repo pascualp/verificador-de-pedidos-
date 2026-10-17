@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { TimeRemaining } from './TimeRemaining';
 import { WebhookSettings } from './WebhookSettings';
 import { RestaurantDashboard } from './RestaurantDashboard';
+import { addCollected, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
 
 export function CentralDashboard({ 
   drivers, 
@@ -59,23 +60,17 @@ export function CentralDashboard({
     setHiddenRestaurants(prev => ({ ...prev, [restId]: !prev[restId] }));
   };
 
-  const getDriverTotal = (driver: Driver) => {
-    const delivered = driver.totalCollected || 0;
-    const active = orders ? orders.filter(o => o.driverId === driver.id && o.status === 'Asignado').reduce((sum, o) => sum + (o.price || 0), 0) : 0;
-    return delivered + active;
-  };
+  // Sin restId = total general del repartidor; con restId = solo la caja de ese restaurante
+  const getDriverTotal = (driver: Driver, restId?: string) => driverTotal(orders, driver, restId);
 
-  const handleCloseShift = (driver: Driver) => {
-    const total = getDriverTotal(driver);
-    
+  const handleCloseShift = (driver: Driver, restId?: string) => {
+    const total = getDriverTotal(driver, restId);
+    const restLabel = restId === 'restaurant1' ? ' (Tropical)' : restId === 'restaurant2' ? " (s'Estatua)" : '';
+
     let breakdownStr = '';
     if (orders) {
-      const shiftOrders = orders.filter(o => 
-        o.driverId === driver.id && 
-        o.status === 'Entregado' &&
-        (!driver.shiftStartedAt || new Date(o.assignedAt || o.createdAt) >= new Date(driver.shiftStartedAt))
-      );
-      
+      const shiftOrders = shiftOrdersFor(orders, driver, restId);
+
       const cashCount = shiftOrders.filter(o => o.paymentMethod === 'efectivo' && (o.price || 0) > 0).length;
       const cardCount = shiftOrders.filter(o => o.paymentMethod === 'tarjeta').length;
       const paidCount = shiftOrders.filter(o => !o.paymentMethod || o.price === 0).length;
@@ -83,12 +78,11 @@ export function CentralDashboard({
       breakdownStr = `\n\nDesglose de entregas:\n- Efectivo: ${cashCount}\n- Tarjeta: ${cardCount}\n- Ya Pagado: ${paidCount}`;
     }
 
-    if(window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal: $${total.toFixed(2)}${breakdownStr}`)) {
-      updateDriver({ 
-        ...driver, 
-        totalCollected: 0, 
-        shiftStartedAt: new Date().toISOString(),
-        lastUpdated: new Date().toISOString() 
+    if(window.confirm(`¿Cerrar turno de ${driver.name}${restLabel}?\nTotal: $${total.toFixed(2)}${breakdownStr}`)) {
+      updateDriver({
+        ...driver,
+        ...closeShiftPatch(driver, restId),
+        lastUpdated: new Date().toISOString()
       });
     }
   };
@@ -906,11 +900,11 @@ function RestaurantColumn({
   setEditRestaurantId: (id: string) => void;
   editCanSeePending: boolean;
   setEditCanSeePending: (canSee: boolean) => void;
-  getDriverTotal: (driver: Driver) => number;
+  getDriverTotal: (driver: Driver, restId?: string) => number;
   handleEditSave: (driver: Driver) => void;
   hiddenRestaurants: Record<string, boolean>;
   toggleVisibility: (restId: string) => void;
-  handleCloseShift: (driver: Driver) => void;
+  handleCloseShift: (driver: Driver, restId?: string) => void;
 }) {
   const [isLibresCollapsed, setIsLibresCollapsed] = useState(true);
   const restDrivers = drivers.filter(d => (d.restaurantId === restId) || (d.restaurantId === 'ambos') || (!d.restaurantId && restId === 'restaurant1'));
@@ -990,7 +984,7 @@ function RestaurantColumn({
                                     if (driver) {
                                       updateDriver({
                                         ...driver,
-                                        totalCollected: (driver.totalCollected || 0) + diff
+                                        ...addCollected(driver, restOf(order), diff)
                                       });
                                     }
                                   }
@@ -1015,7 +1009,7 @@ function RestaurantColumn({
                                   if (driver) {
                                     updateDriver({
                                       ...driver,
-                                      totalCollected: (driver.totalCollected || 0) + newPrice
+                                      ...addCollected(driver, restOf(order), newPrice)
                                     });
                                   }
                                 }
@@ -1131,10 +1125,10 @@ function RestaurantColumn({
                           <span>Historial: {driver.totalOrders || 0} pedidos</span>
                           <div className="flex items-center gap-1">
                               <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-black border border-emerald-200">
-                                ${getDriverTotal(driver).toFixed(2)}
+                                ${getDriverTotal(driver, restId).toFixed(2)}
                               </span>
-                              <button 
-                                onClick={() => handleCloseShift(driver)}
+                              <button
+                                onClick={() => handleCloseShift(driver, restId)}
                                 className="text-gray-400 hover:text-emerald-600 transition-colors"
                                 title="Cerrar Turno (Caja)"
                               >

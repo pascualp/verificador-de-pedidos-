@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Driver, Order } from '../types';
 import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft, CreditCard, Banknote, Pizza, TreePalm } from 'lucide-react';
 import { TimeRemaining } from './TimeRemaining';
+import { addCollected, addCollectedBatch, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
 
 export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, onBack }: { drivers: Driver[], updateDriver: (d: Driver) => void, orders?: Order[], updateOrder?: (o: Order) => void, onBack: () => void }) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(() => {
@@ -38,13 +39,10 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
 
   const selectedDriver = drivers.find(d => d.id === selectedDriverId);
 
-  const getDriverTotal = (driver: Driver) => {
-    const delivered = driver.totalCollected || 0;
-    const active = (orders || []).filter(o => o.driverId === driver.id && o.status === 'Asignado').reduce((sum, o) => sum + (o.price || 0), 0);
-    return delivered + active;
-  };
+  // Lo que lleva el repartidor encima: suma de las cajas de todos los restaurantes
+  const getDriverTotal = (driver: Driver) => driverTotal(orders, driver);
 
-  
+
   const handleCompleteIndividualOrder = (order: Order, paymentMethod: 'efectivo' | 'tarjeta' | 'pagado') => {
     const isEfectivo = paymentMethod === 'efectivo';
     const amount = isEfectivo ? (order.price || 0) : 0;
@@ -64,7 +62,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
         status: remainingActive === 0 ? 'Libre' : 'Repartiendo',
         activeOrders: remainingActive,
         totalOrders: (selectedDriver.totalOrders || 0) + 1,
-        totalCollected: (selectedDriver.totalCollected || 0) + amount,
+        ...addCollected(selectedDriver, restOf(order), amount),
         lastUpdated: new Date().toISOString()
       });
     }
@@ -74,18 +72,17 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
 
   const handleMarkAsFree = (driver: Driver) => {
     const assignedOrders = orders?.filter(o => o.driverId === driver.id && o.status === 'Asignado') || [];
-    const shiftTotal = assignedOrders.reduce((sum, o) => {
-      // Only sum up orders that are not marked as paid and have a price
-      if (o.isPaid || o.price === 0) return sum;
-      return sum + (o.price || 0);
-    }, 0);
+    // Solo se suman los pedidos no pagados y con precio; cada importe va a la caja de SU restaurante
+    const collected = assignedOrders
+      .filter(o => !(o.isPaid || o.price === 0))
+      .map(o => ({ restId: restOf(o), amount: o.price || 0 }));
 
     updateDriver({
       ...driver,
       status: 'Libre',
       activeOrders: 0,
       totalOrders: (driver.totalOrders || 0) + driver.activeOrders,
-      totalCollected: (driver.totalCollected || 0) + shiftTotal,
+      ...addCollectedBatch(driver, collected),
       lastUpdated: new Date().toISOString()
     });
     
@@ -104,12 +101,8 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
     
     let breakdownStr = '';
     if (orders) {
-      const shiftOrders = orders.filter(o => 
-        o.driverId === driver.id && 
-        o.status === 'Entregado' &&
-        (!driver.shiftStartedAt || new Date(o.assignedAt || o.createdAt) >= new Date(driver.shiftStartedAt))
-      );
-      
+      const shiftOrders = shiftOrdersFor(orders, driver);
+
       const cashCount = shiftOrders.filter(o => o.paymentMethod === 'efectivo' && (o.price || 0) > 0).length;
       const cardCount = shiftOrders.filter(o => o.paymentMethod === 'tarjeta').length;
       const paidCount = shiftOrders.filter(o => !o.paymentMethod || o.price === 0).length;
@@ -120,8 +113,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
     if (window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal recaudado: $${total.toFixed(2)}${breakdownStr}\n\nEsta acción reiniciará la caja a $0.00.`)) {
       updateDriver({
         ...driver,
-        totalCollected: 0,
-        shiftStartedAt: new Date().toISOString(),
+        ...closeShiftPatch(driver),
         lastUpdated: new Date().toISOString()
       });
     }
@@ -404,6 +396,18 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                 <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6">
                   <div className="text-sm font-bold text-emerald-700 uppercase tracking-widest mb-1 text-center">Efectivo en Caja</div>
                   <div className="text-4xl font-black text-emerald-900 text-center">${getDriverTotal(selectedDriver).toFixed(2)}</div>
+                  {selectedDriver.restaurantId === 'ambos' && (
+                    <div className="grid grid-cols-2 gap-2 mt-3 text-center">
+                      <div className="bg-white/70 rounded-lg py-1.5 border border-emerald-100">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-orange-700">Tropical</div>
+                        <div className="text-sm font-black text-emerald-900">${driverTotal(orders, selectedDriver, 'restaurant1').toFixed(2)}</div>
+                      </div>
+                      <div className="bg-white/70 rounded-lg py-1.5 border border-emerald-100">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-rose-700">s'Estatua</div>
+                        <div className="text-sm font-black text-emerald-900">${driverTotal(orders, selectedDriver, 'restaurant2').toFixed(2)}</div>
+                      </div>
+                    </div>
+                  )}
                   <p className="text-[10px] text-emerald-600 text-center mt-2 font-medium">El cierre de caja debe ser realizado por el restaurante.</p>
                 </div>
               </div>

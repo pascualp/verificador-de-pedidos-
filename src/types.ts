@@ -15,6 +15,9 @@ export interface Driver {
   totalCollected?: number;
   canSeePendingOrders?: boolean;
   shiftStartedAt?: string;
+  // Caja separada por restaurante (para repartidores que trabajan en "ambos"). totalCollected sigue siendo el total general.
+  collectedByRestaurant?: Record<string, number>;
+  shiftStartedAtByRestaurant?: Record<string, string>;
 }
 
 export type OrderStatus = 'En Cola' | 'Asignado' | 'Entregado' | 'Cancelado';
