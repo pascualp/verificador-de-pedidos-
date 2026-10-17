@@ -5,7 +5,7 @@
     }
   },
   "rewrites": [
-    { "source": "/api/webhook/orders/", "destination": "/api/webhook/orders" },
+    { "source": "/api/webhook/:path*", "destination": "/api/webhook?route=:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

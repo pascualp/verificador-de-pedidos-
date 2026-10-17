@@ -42,7 +42,11 @@ export function CentralDashboard({
   const [editRestaurantId, setEditRestaurantId] = useState('restaurant1');
   const [editCanSeePending, setEditCanSeePending] = useState(false);
   const [hiddenRestaurants, setHiddenRestaurants] = useState<Record<string, boolean>>({});
-  const [currentView, setCurrentView] = useState<'dashboard' | 'restaurant1' | 'restaurant2' | 'webhooks' | 'history'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'restaurant1' | 'restaurant2' | 'webhooks' | 'history' | 'driverGuide'>('dashboard');
+  const [simulationStep, setSimulationStep] = useState(1);
+  const [simulatedRestaurant, setSimulatedRestaurant] = useState<'restaurant1' | 'restaurant2'>('restaurant1');
+  const [simulatedPaid, setSimulatedPaid] = useState(false);
+  const [simulatedPaymentMethod, setSimulatedPaymentMethod] = useState<'cash' | 'card' | null>(null);
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
@@ -148,6 +152,14 @@ export function CentralDashboard({
               <FileText className="w-4 h-4" />
               Historial
             </button>
+            <button 
+              onClick={() => setCurrentView('driverGuide')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${currentView === 'driverGuide' ? 'bg-amber-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-500 opacity-20 hover:opacity-100'}`}
+              title="Modo Capturas - Guía Repartidor"
+            >
+              <Bike className="w-4 h-4" />
+              Guía
+            </button>
           </div>
           
           <div className="flex gap-2 items-center w-full sm:w-auto">
@@ -183,6 +195,272 @@ export function CentralDashboard({
 
       {currentView === 'webhooks' ? (
         <WebhookSettings config={appConfig} onUpdate={updateAppConfig} />
+      ) : currentView === 'driverGuide' ? (
+        <div className="max-w-md mx-auto animate-in fade-in zoom-in duration-300">
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl mb-6 text-center">
+            <h3 className="font-black text-amber-800 uppercase tracking-wider text-sm mb-1">Modo Simulación: Guía de Repartidor</h3>
+            <p className="text-xs text-amber-700 font-bold mb-4">Usa los controles para cambiar el flujo y tomar capturas.</p>
+            
+            <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex bg-white rounded-lg p-1 border border-amber-100">
+                <button 
+                  onClick={() => setSimulatedRestaurant('restaurant1')}
+                  className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${simulatedRestaurant === 'restaurant1' ? 'bg-orange-500 text-white' : 'text-gray-400'}`}
+                >
+                  Tropical
+                </button>
+                <button 
+                  onClick={() => setSimulatedRestaurant('restaurant2')}
+                  className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${simulatedRestaurant === 'restaurant2' ? 'bg-rose-500 text-white' : 'text-gray-400'}`}
+                >
+                  s'Estatua
+                </button>
+              </div>
+
+              <div className="flex bg-white rounded-lg p-1 border border-amber-100">
+                <button 
+                  onClick={() => setSimulatedPaid(true)}
+                  className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${simulatedPaid ? 'bg-green-500 text-white' : 'text-gray-400'}`}
+                >
+                  Pagado
+                </button>
+                <button 
+                  onClick={() => setSimulatedPaid(false)}
+                  className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${!simulatedPaid ? 'bg-red-500 text-white' : 'text-gray-400'}`}
+                >
+                  Cobrar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center gap-2 mb-8">
+            {[1, 2, 3, 4].map(step => (
+              <button
+                key={step}
+                onClick={() => {
+                  setSimulationStep(step);
+                  if (step < 3) setSimulatedPaymentMethod(null);
+                }}
+                className={`w-10 h-10 rounded-full font-black text-sm transition-all ${simulationStep === step ? 'bg-amber-600 text-white scale-110 shadow-lg' : 'bg-white text-gray-400 border border-gray-200'}`}
+              >
+                {step}
+              </button>
+            ))}
+          </div>
+
+          {/* Simulated Phone UI */}
+          <div className="bg-gray-900 p-3 rounded-[3rem] shadow-2xl border-[8px] border-gray-800 relative aspect-[9/19] max-w-[320px] mx-auto overflow-hidden">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-800 rounded-b-2xl z-20"></div>
+            
+            <div className="bg-gray-50 h-full w-full rounded-[2rem] overflow-y-auto p-4 pt-8">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 ${simulatedRestaurant === 'restaurant1' ? 'bg-orange-500' : 'bg-rose-500'} rounded-lg flex items-center justify-center`}>
+                    <Bike className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="font-black text-gray-900 tracking-tight">DriverApp</span>
+                </div>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              </div>
+
+              {simulationStep === 1 && (
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-2xl border-2 border-dashed border-gray-200 text-center py-12">
+                    <Package className="w-12 h-12 text-gray-200 mx-auto mb-2" />
+                    <p className="text-gray-400 font-bold text-sm">Esperando nuevos pedidos...</p>
+                  </div>
+                  <div className={`border p-4 rounded-2xl animate-bounce ${simulatedRestaurant === 'restaurant1' ? 'bg-orange-50 border-orange-200' : 'bg-rose-50 border-rose-200'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <Zap className={`w-5 h-5 ${simulatedRestaurant === 'restaurant1' ? 'text-orange-600' : 'text-rose-600'}`} />
+                      <span className={`font-black text-sm uppercase ${simulatedRestaurant === 'restaurant1' ? 'text-orange-900' : 'text-rose-900'}`}>¡Nuevo Pedido!</span>
+                    </div>
+                    <p className={`text-xs font-bold mb-3 ${simulatedRestaurant === 'restaurant1' ? 'text-orange-800' : 'text-rose-800'}`}>
+                      Tienes un pedido de {simulatedRestaurant === 'restaurant1' ? 'Tropical' : "s'Estatua"} listo para retirar.
+                    </p>
+                    <button 
+                      onClick={() => setSimulationStep(2)}
+                      className={`w-full text-white py-3 rounded-xl font-black text-xs uppercase shadow-lg ${simulatedRestaurant === 'restaurant1' ? 'bg-orange-600 shadow-orange-200' : 'bg-rose-600 shadow-rose-200'}`}
+                    >
+                      Ver Detalles
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {simulationStep === 2 && (
+                <div className="space-y-4">
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4 relative overflow-hidden">
+                    {/* Paid Indicator Ribbon */}
+                    <div className={`absolute top-0 right-0 px-4 py-1 rounded-bl-xl font-black text-[9px] uppercase tracking-tighter ${simulatedPaid ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                      {simulatedPaid ? 'PAGADO' : 'COBRAR AL CLIENTE'}
+                    </div>
+
+                    <div className="flex justify-between items-start border-b border-gray-50 pb-3 pt-4">
+                      <div>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${simulatedRestaurant === 'restaurant1' ? 'text-orange-500' : 'text-rose-500'}`}>
+                          {simulatedRestaurant === 'restaurant1' ? 'Tropical' : "s'Estatua"}
+                        </span>
+                        <h4 className="text-xl font-black text-gray-900">Pedido #245</h4>
+                      </div>
+                      <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">Activo</span>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center shrink-0 border border-gray-100">
+                          <User className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Cliente</p>
+                          <p className="text-sm font-black text-gray-800">Maria García</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${simulatedRestaurant === 'restaurant1' ? 'bg-orange-50 border-orange-100' : 'bg-rose-50 border-rose-100'}`}>
+                          <MapPin className={`w-4 h-4 ${simulatedRestaurant === 'restaurant1' ? 'text-orange-600' : 'text-rose-600'}`} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">Dirección de Entrega</p>
+                          <p className="text-xs font-bold text-gray-600 leading-relaxed mb-2">C/ Mayor 42, 3ºB, Localidad Central</p>
+                          <button className={`w-full py-2 rounded-lg font-black text-[10px] uppercase flex items-center justify-center gap-2 border shadow-sm ${simulatedRestaurant === 'restaurant1' ? 'bg-white text-orange-600 border-orange-200' : 'bg-white text-rose-600 border-rose-200'}`}>
+                            <MapPin className="w-3 h-3" />
+                            Ir a Dirección (GPS)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0 border border-emerald-100">
+                          <Clock className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase leading-none mb-1">
+                            {simulatedPaid ? 'Ticket / Ref' : 'Total a Cobrar'}
+                          </p>
+                          <p className={`text-lg font-black ${simulatedPaid ? 'text-gray-900' : 'text-emerald-700'}`}>
+                            $24.50
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex gap-2">
+                      <button 
+                        onClick={() => {
+                          if (simulatedPaid) {
+                            setSimulationStep(4);
+                          } else {
+                            setSimulationStep(3);
+                          }
+                        }}
+                        className={`flex-1 text-white py-3 rounded-xl font-black text-xs uppercase shadow-lg ${simulatedRestaurant === 'restaurant1' ? 'bg-orange-600 shadow-orange-100' : 'bg-rose-600 shadow-rose-100'}`}
+                      >
+                        Finalizar Entrega
+                      </button>
+                      <button className="bg-gray-100 text-gray-500 p-3 rounded-xl">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {!simulatedPaid && (
+                    <div className="bg-red-50 border border-red-100 p-3 rounded-xl">
+                      <p className="text-[10px] font-bold text-red-700 leading-tight">
+                        <span className="font-black uppercase">Atención:</span> Este pedido NO está pagado. Debes cobrar el total al cliente antes de finalizar.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {simulationStep === 3 && (
+                <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
+                  <h4 className="text-lg font-black text-gray-900 text-center mb-6">¿Cómo pagó el cliente?</h4>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <button 
+                      onClick={() => {
+                        setSimulatedPaymentMethod('cash');
+                        setSimulationStep(4);
+                      }}
+                      className="bg-white border-2 border-gray-100 p-6 rounded-2xl flex flex-col items-center gap-3 hover:border-emerald-500 transition-all group"
+                    >
+                      <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <span className="text-2xl">💵</span>
+                      </div>
+                      <span className="font-black text-gray-900 uppercase tracking-widest text-sm">Efectivo</span>
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setSimulatedPaymentMethod('card');
+                        setSimulationStep(4);
+                      }}
+                      className="bg-white border-2 border-gray-100 p-6 rounded-2xl flex flex-col items-center gap-3 hover:border-indigo-500 transition-all group"
+                    >
+                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <span className="text-2xl">💳</span>
+                      </div>
+                      <span className="font-black text-gray-900 uppercase tracking-widest text-sm">Tarjeta (Datafono)</span>
+                    </button>
+                  </div>
+
+                  <button 
+                    onClick={() => setSimulationStep(2)}
+                    className="w-full text-gray-400 font-bold text-xs uppercase pt-4"
+                  >
+                    Volver atrás
+                  </button>
+                </div>
+              )}
+
+              {simulationStep === 4 && (
+                <div className="space-y-4 text-center py-10">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-green-50 shadow-inner">
+                    <Check className="w-10 h-10 text-green-600" />
+                  </div>
+                  <h4 className="text-xl font-black text-gray-900">¡Pedido Entregado!</h4>
+                  {simulatedPaymentMethod && (
+                    <div className={`inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase mb-2 ${simulatedPaymentMethod === 'cash' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                      Cobrado en {simulatedPaymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta'}
+                    </div>
+                  )}
+                  <p className="text-sm font-bold text-gray-400 px-4">Has completado la entrega satisfactoriamente.</p>
+                  
+                  <div className="mt-8 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold text-gray-400 uppercase">Resumen</span>
+                      <span className="text-xs font-black text-indigo-600">Hoy</span>
+                    </div>
+                    <div className="flex justify-around py-2">
+                      <div className="text-center">
+                        <p className="text-lg font-black text-gray-900">12</p>
+                        <p className="text-[9px] font-black text-gray-400 uppercase">Pedidos</p>
+                      </div>
+                      <div className="w-px bg-gray-100"></div>
+                      <div className="text-center">
+                        <p className="text-lg font-black text-emerald-600">$185.0</p>
+                        <p className="text-[9px] font-black text-gray-400 uppercase">Total</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setSimulationStep(1)}
+                    className="mt-6 text-indigo-600 font-black text-xs uppercase hover:underline"
+                  >
+                    Volver a inicio
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Simulated Phone Bar */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-gray-800 rounded-full z-20"></div>
+          </div>
+        </div>
       ) : currentView === 'history' ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-col lg:flex-row items-center justify-between gap-4">
