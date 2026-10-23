@@ -5,6 +5,7 @@
     }
   },
   "rewrites": [
+    { "source": "/api/webhook/(.+)/", "destination": "/api/webhook?route=$1" },
     { "source": "/api/webhook/:path*", "destination": "/api/webhook?route=:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
