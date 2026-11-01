@@ -194,7 +194,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                   </div>
                 )}
                 <p className="text-sm text-amber-900 flex-1">
-                  {leyendoTicket ? 'Leyendo la foto…' : avisoTicket || 'Saca una foto de la comanda y se rellenan solos la dirección y el teléfono. Después puedes añadir el ticket del precio. Las fotos quedan guardadas con el pedido.'}
+                  {leyendoTicket ? 'Leyendo la foto…' : avisoTicket || 'Saca una foto de la comanda (o elígela de la galería) y se rellenan solos la dirección y el teléfono. Después puedes añadir el ticket del precio. Las fotos quedan guardadas con el pedido.'}
                 </p>
                 {ticketFotos.length > 0 && !leyendoTicket && (
                   <button type="button" onClick={() => { setTicketFotos([]); setAvisoTicket(''); }} className="text-xs text-amber-800 underline self-start sm:self-center">

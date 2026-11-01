@@ -1,42 +1,48 @@
-import { useRef, useState } from 'react';
-import { Camera, Loader2, Receipt, X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Camera, Images, Loader2, Receipt, X } from 'lucide-react';
 import { Order } from '../types';
 import { cargarTicket, comprimirFoto, guardarTicket, leerTicket, MAX_FOTOS, rellenarPedido } from '../lib/ticket';
 
 // Cuántas fotos tiene guardadas un pedido (los primeros pedidos con foto no llevaban ticketFotos).
 export const fotosDe = (order: Order) => order.ticketFotos ?? (order.hasTicket ? 1 : 0);
 
-// Abre la cámara trasera del móvil (en el ordenador, el selector de fotos) y devuelve la foto ya comprimida.
+// Dos botones: uno abre la cámara trasera del móvil y el otro la galería, por si la foto se sacó antes
+// (en el ordenador los dos abren el selector de archivos). Devuelve la foto ya comprimida.
 export function BotonCamara({ onFoto, texto, className }: { onFoto: (foto: string) => void; texto: string; className?: string }) {
-  const entrada = useRef<HTMLInputElement>(null);
+  const camara = useRef<HTMLInputElement>(null);
+  const galeria = useRef<HTMLInputElement>(null);
   const [ocupado, setOcupado] = useState(false);
+
+  const usarFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!archivo) return;
+    setOcupado(true);
+    try {
+      onFoto(await comprimirFoto(archivo));
+    } catch {
+      alert('No se pudo usar esa foto. Prueba con otra.');
+    } finally {
+      setOcupado(false);
+    }
+  };
+
   return (
-    <>
-      <input
-        ref={entrada}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={async (e) => {
-          const archivo = e.target.files?.[0];
-          e.target.value = '';
-          if (!archivo) return;
-          setOcupado(true);
-          try {
-            onFoto(await comprimirFoto(archivo));
-          } catch {
-            alert('No se pudo usar esa foto. Prueba a sacarla otra vez.');
-          } finally {
-            setOcupado(false);
-          }
-        }}
-      />
-      <button type="button" onClick={() => entrada.current?.click()} disabled={ocupado} className={className}>
+    <div className="flex flex-wrap gap-2">
+      {/* capture obliga a usar la cámara; sin capture el móvil deja elegir de la galería */}
+      <input ref={camara} type="file" accept="image/*" capture="environment" className="hidden" onChange={usarFoto} />
+      <input ref={galeria} type="file" accept="image/*" className="hidden" onChange={usarFoto} />
+      <button type="button" onClick={() => camara.current?.click()} disabled={ocupado} className={className}>
         {ocupado ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
         {texto}
       </button>
-    </>
+      {!ocupado && (
+        <button type="button" onClick={() => galeria.current?.click()} className={className}>
+          <Images className="w-4 h-4" />
+          Galería
+        </button>
+      )}
+    </div>
   );
 }
 
