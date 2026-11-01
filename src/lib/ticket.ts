@@ -64,13 +64,36 @@ export async function rellenarPedido(orderId: string, campos: { address?: string
   if (Object.keys(campos).length) await updateDoc(doc(db, 'orders', orderId), campos);
 }
 
+// La misma foto girada 90° (grados = 90 o -90), más pequeña: el teléfono suele ir escrito de lado
+// en el margen y la IA lo lee mejor de frente. Si el navegador no puede girarla, se manda solo la original.
+async function girar(dataUrl: string, grados: 90 | -90, lado = 1200): Promise<string | null> {
+  try {
+    const img = new Image();
+    img.src = dataUrl;
+    await img.decode();
+    const escala = Math.min(1, lado / Math.max(img.width, img.height));
+    const w = Math.round(img.width * escala), h = Math.round(img.height * escala);
+    const canvas = document.createElement('canvas');
+    canvas.width = h;
+    canvas.height = w;
+    const ctx = canvas.getContext('2d')!;
+    ctx.translate(h / 2, w / 2);
+    ctx.rotate((grados * Math.PI) / 180);
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } catch {
+    return null;
+  }
+}
+
 // Pide a la IA (api/leer-ticket) que lea teléfono, dirección, importe y nombre de la foto.
 export async function leerTicket(imagen: string): Promise<LecturaTicket | { error: string }> {
   try {
+    const giradas = (await Promise.all([girar(imagen, 90), girar(imagen, -90)])).filter((x): x is string => !!x);
     const r = await fetch('/api/leer-ticket', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imagen }),
+      body: JSON.stringify({ imagenes: [imagen, ...giradas] }),
     });
     const datos = await r.json().catch(() => ({ error: 'Respuesta no válida' }));
     return r.ok ? datos : { error: datos.error || `Error ${r.status}` };

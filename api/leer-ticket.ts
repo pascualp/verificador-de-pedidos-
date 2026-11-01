@@ -46,10 +46,14 @@ export default async function handler(req: any, res: any) {
   if (req.method !== "POST") return res.status(405).json({ error: "Usa POST" });
   if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "sin_clave" });
 
-  const imagen: string = req.body?.imagen || "";
-  const partes = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(imagen);
-  if (!partes) return res.status(400).json({ error: "Falta la foto" });
-  if (partes[2].length > 4_000_000) return res.status(413).json({ error: "La foto es demasiado grande" });
+  // La app manda la foto y, detrás, la misma girada a cada lado (imagenes); las versiones viejas mandaban solo "imagen".
+  const recibidas: string[] = Array.isArray(req.body?.imagenes) ? req.body.imagenes.slice(0, 3) : [req.body?.imagen || ""];
+  const fotos = recibidas.map((x) => /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(String(x)));
+  if (!fotos.length || fotos.some((f) => !f)) return res.status(400).json({ error: "Falta la foto" });
+  if (fotos.reduce((n, f) => n + f![2].length, 0) > 4_000_000) return res.status(413).json({ error: "La foto es demasiado grande" });
+  const nota = fotos.length > 1
+    ? `\n\nLa imagen 1 es la foto. Las siguientes son LA MISMA foto girada 90° a cada lado, para leer de frente lo escrito en vertical (el teléfono del margen): usa la que se lea mejor.`
+    : "";
 
   try {
     const client = new Anthropic();
@@ -61,8 +65,8 @@ export default async function handler(req: any, res: any) {
         {
           role: "user",
           content: [
-            { type: "image", source: { type: "base64", media_type: partes[1] as TipoImagen, data: partes[2] } },
-            { type: "text", text: INSTRUCCIONES },
+            ...fotos.map((f) => ({ type: "image" as const, source: { type: "base64" as const, media_type: f![1] as TipoImagen, data: f![2] } })),
+            { type: "text", text: INSTRUCCIONES + nota },
           ],
         },
       ],
