@@ -7,6 +7,7 @@ import { Driver, Order, AppConfig, OperationType, FirestoreErrorInfo } from './t
 import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff, Bike, Download } from 'lucide-react';
 import { db } from './firebase';
 import { guardarTicket } from './lib/ticket';
+import { comprobarBase } from './lib/estadoBase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, getDocFromServer, query, orderBy, limit } from 'firebase/firestore';
 
 
@@ -21,7 +22,15 @@ const sanitizeForFirestore = <T extends Record<string, any>>(obj: T): T => {
 };
 
 export default function App() {
+  // Si la base de datos falla al leer (por ejemplo, sin cuota diaria), la app lo dice en vez de quedarse vacía
+  const [errorBase, setErrorBase] = useState<'cuota' | 'otro' | null>(null);
+  const pedidosRecibidos = React.useRef(false);
   const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
+    if (operationType === OperationType.GET) {
+      const codigo = (error as { code?: string })?.code;
+      const texto = error instanceof Error ? error.message : String(error);
+      setErrorBase(codigo === 'resource-exhausted' || /quota/i.test(texto) ? 'cuota' : 'otro');
+    }
     const errInfo: FirestoreErrorInfo = {
       error: error instanceof Error ? error.message : String(error),
       authInfo: {
@@ -143,6 +152,8 @@ export default function App() {
         ordersData.push({ id: doc.id, ...doc.data() } as Order);
       });
       setOrders(ordersData);
+      // Sin conexión con la base, Firebase entrega una lista vacía "de caché": eso no cuenta como pedidos recibidos
+      if (!snapshot.metadata.fromCache) pedidosRecibidos.current = true;
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'orders');
     });
@@ -305,8 +316,48 @@ export default function App() {
     }
   };
 
+  // Vigilancia de la base de datos. Firebase no avisa cuando se agota la cuota: los pedidos simplemente no llegan.
+  // - Si a los 20 s de abrir no han llegado los pedidos, se pregunta a la base qué pasa.
+  // - Con la app funcionando, una comprobación cada 10 min (1 lectura) detecta un corte en pleno servicio.
+  // - Con el aviso puesto, se comprueba cada 5 min y la app se recarga sola cuando la base vuelve.
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (pedidosRecibidos.current) return;
+      const estado = await comprobarBase();
+      setErrorBase(estado === 'ok' ? 'otro' : estado);
+    }, 20 * 1000);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    const t = setInterval(async () => {
+      if (document.visibilityState !== 'visible') return;
+      const estado = await comprobarBase();
+      if (estado === 'ok') {
+        if (errorBase) window.location.reload();
+      } else if (estado === 'cuota') {
+        setErrorBase('cuota');
+      }
+    }, (errorBase ? 5 : 10) * 60 * 1000);
+    return () => clearInterval(t);
+  }, [errorBase]);
+
+  const avisoBase = errorBase && (
+    <div role="alert" className="fixed top-0 inset-x-0 z-[60] bg-red-600 text-white px-4 py-3 shadow-lg">
+      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <p className="text-sm font-medium flex-1">
+          {errorBase === 'cuota'
+            ? 'La app no puede leer los pedidos: la base de datos ha llegado a su límite gratuito de hoy. Vuelve a funcionar a las 8:00 de la mañana; la app se recargará sola cuando vuelva.'
+            : 'La app no consigue cargar los pedidos. Comprueba la conexión a internet y pulsa Recargar.'}
+        </p>
+        <button type="button" onClick={() => window.location.reload()} className="bg-white text-red-700 font-bold text-sm px-4 py-2 rounded-lg shrink-0">
+          Recargar
+        </button>
+      </div>
+    </div>
+  );
+
   if (!isReady) {
-    return <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">Cargando...</div>;
+    return <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">{avisoBase}Cargando...</div>;
   }
 
   if (!role) {
@@ -314,6 +365,7 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-4 font-sans text-[#1A1A1A]">
+        {avisoBase}
         {activePendingRole ? (
           <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm max-w-sm w-full relative">
             {!appMode && (
@@ -445,6 +497,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans pb-12">
+      {avisoBase}
       {role !== 'driver' && <Header role={role} setRole={setRole} />}
       <main className={role === 'driver' ? 'w-full max-w-md mx-auto px-4 pt-4 pb-20' : 'max-w-5xl mx-auto px-8 pt-8'}>
         {role === 'driver' ? (
