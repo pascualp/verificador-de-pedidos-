@@ -78,9 +78,10 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
       setPriceError(false);
     }
     const leidos = [r.direccion && 'dirección', r.telefono && 'teléfono', r.importe != null && 'importe'].filter(Boolean);
+    const ojo = r.dudas ? ` Ojo: ${r.dudas}` : '';
     setAvisoTicket(leidos.length
-      ? `Leído: ${leidos.join(', ')}. Revísalo antes de generar el pedido.`
-      : 'No se ve la dirección ni el teléfono en la foto: escríbelos a mano. La foto se guarda igual.');
+      ? `Leído: ${leidos.join(', ')}. Revísalo antes de generar el pedido.${ojo}`
+      : `No se ve la dirección ni el teléfono en la foto: escríbelos a mano. La foto se guarda igual.${ojo}`);
   };
 
   const handleReturn = (driver: Driver) => {

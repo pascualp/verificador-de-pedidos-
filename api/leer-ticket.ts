@@ -13,18 +13,27 @@ const Lectura = z.object({
   direccion: z.string().nullable(),
   importe: z.number().nullable(),
   nombre: z.string().nullable(),
+  dudas: z.string().nullable(),
 });
 
 const INSTRUCCIONES = `Esta foto es de un pedido a domicilio de la pizzería s'Estatua, en Llucmajor (Mallorca).
-Puede salir un ticket impreso con el importe y/o un papel escrito a mano con la dirección y el teléfono del cliente.
+Suele ser una comanda de talonario escrita a mano, a veces junto a un ticket impreso de caja.
+
+Cómo la escriben:
+- El TELÉFONO del cliente va casi siempre escrito EN VERTICAL, de lado, en el margen izquierdo. Gira la lectura para leerlo.
+- La DIRECCIÓN va abajo, en el último recuadro: solo el nombre de la calle y el número, a menudo sin "Carrer" y con faltas (por ejemplo "Mijorn 12b" es "Migjorn 12B"). Al lado puede llevar el piso o la puerta en pequeño.
+- En el centro van los productos (pizzas, bebidas): no son ni la dirección ni el teléfono.
+- El número impreso en ROJO abajo a la derecha es el número del talonario: NUNCA es el teléfono.
+- Los recuadros de arriba (comensales, mesa, camarero) tampoco son ni el teléfono ni el importe.
 
 Devuelve:
-- telefono: el teléfono del cliente, solo las cifras (en España son 9; quita el +34 si lo lleva). null si no se lee con seguridad.
-- direccion: la dirección tal como está escrita (calle, número, piso, puerta, urbanización). No añadas ciudad ni código postal: todas las entregas son en Llucmajor. null si no hay dirección.
-- importe: el total a cobrar del ticket impreso, en euros, como número (por ejemplo 17.05). null si no aparece.
+- telefono: el teléfono del cliente, solo las cifras (quita el +34 si lo lleva). Si lees menos o más de 9 cifras, devuelve lo que leas y explícalo en "dudas". null si no hay teléfono.
+- direccion: la calle con el número y el piso o puerta si los hay. Corrige solo la ortografía evidente del nombre de la calle (en catalán o castellano, como se llama en Llucmajor) y no añadas ciudad ni código postal: todas las entregas son en Llucmajor. null si no hay dirección.
+- importe: el total a cobrar, en euros, como número (por ejemplo 17.05), solo si sale claro en un ticket impreso o escrito como total. null si no.
 - nombre: el nombre del cliente si está escrito. null si no.
+- dudas: una frase corta con lo que no estés seguro de haber leído bien (una cifra, la calle, el piso). null si todo está claro.
 
-No inventes nada: si dudas de una cifra o de una palabra, pon null en ese dato.`;
+No inventes nada: si no se puede leer un dato, pon null en ese dato.`;
 
 type TipoImagen = "image/jpeg" | "image/png" | "image/webp";
 

@@ -5,7 +5,7 @@ import { db } from '../firebase';
 // de pedidos, que la app escucha entera, no cargue fotos. Las reglas de Firestore ya permiten "config".
 export const RESTAURANTE_CON_TICKET = 'restaurant2';
 
-const MAX_LADO = 1400;
+const MAX_LADO = 1568; // el lado más largo que aprovecha la IA al leer; la letra a mano necesita resolución
 const MAX_CARACTERES = 900_000; // un documento de Firestore admite como mucho 1 MiB
 
 export interface LecturaTicket {
@@ -13,6 +13,7 @@ export interface LecturaTicket {
   direccion: string | null;
   importe: number | null;
   nombre: string | null;
+  dudas: string | null; // lo que la IA no está segura de haber leído bien
 }
 
 async function aDataUrl(archivo: File, lado: number, calidad: number): Promise<string> {
