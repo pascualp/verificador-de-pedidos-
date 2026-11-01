@@ -3,10 +3,10 @@ import { Driver, Order } from '../types';
 import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X, Edit2, Check, Bike } from 'lucide-react';
 import { TimeRemaining } from './TimeRemaining';
 import { addCollected, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
-import { leerTicket, RESTAURANTE_CON_TICKET } from '../lib/ticket';
+import { leerTicket, MAX_FOTOS, RESTAURANTE_CON_TICKET } from '../lib/ticket';
 import { AdjuntarTicket, BotonCamara, VerTicket } from './TicketFoto';
 
-export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number, ticketFoto?: string) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
+export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number, ticketFotos?: string[]) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
   // New order form state
   const [newOrderNumber, setNewOrderNumber] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
@@ -19,8 +19,8 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
   const [selectedDriverHistory, setSelectedDriverHistory] = useState<Driver | null>(null);
   const [historyDate, setHistoryDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
   const [currentTab, setCurrentTab] = useState<'active' | 'history'>('active');
-  // s'Estatua: foto del ticket / papel con la dirección, que la IA lee para rellenar el pedido
-  const [ticketFoto, setTicketFoto] = useState<string | null>(null);
+  // s'Estatua: fotos de la comanda (dirección y teléfono) y del ticket (precio), que la IA lee para rellenar el pedido
+  const [ticketFotos, setTicketFotos] = useState<string[]>([]);
   const [leyendoTicket, setLeyendoTicket] = useState(false);
   const [avisoTicket, setAvisoTicket] = useState('');
 
@@ -44,21 +44,22 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
         generatedOrderNumber = nextNumber.toString();
       }
 
-      addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress, newPrepTime ? parseInt(newPrepTime, 10) : undefined, newPrice ? parseFloat(newPrice) : undefined, ticketFoto || undefined);
+      addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress, newPrepTime ? parseInt(newPrepTime, 10) : undefined, newPrice ? parseFloat(newPrice) : undefined, ticketFotos.length ? ticketFotos : undefined);
       setNewOrderNumber('');
       setNewCustomerName('');
       setNewCustomerPhone('');
       setNewCustomerAddress('');
       setNewPrepTime('');
       setNewPrice('');
-      setTicketFoto(null);
+      setTicketFotos([]);
       setAvisoTicket('');
       setIsAddingOrder(false);
     }
   };
 
   const leerFoto = async (foto: string) => {
-    setTicketFoto(foto);
+    const numero = ticketFotos.length + 1;
+    setTicketFotos(fotos => [...fotos, foto].slice(0, MAX_FOTOS));
     setLeyendoTicket(true);
     setAvisoTicket('');
     const r = await leerTicket(foto);
@@ -66,7 +67,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
     if ('error' in r) {
       setAvisoTicket(r.error === 'sin_clave'
         ? 'La lectura automática aún no está activada: escribe los datos a mano. La foto se guarda igual.'
-        : 'No se pudo leer la foto: escribe los datos a mano. La foto se guarda igual.');
+        : `No se pudo leer la foto ${numero}: escribe los datos a mano. La foto se guarda igual.`);
       return;
     }
     // Solo rellena lo que está vacío, para no pisar lo que ya escribieron
@@ -80,8 +81,8 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
     const leidos = [r.direccion && 'dirección', r.telefono && 'teléfono', r.importe != null && 'importe'].filter(Boolean);
     const ojo = r.dudas ? ` Ojo: ${r.dudas}` : '';
     setAvisoTicket(leidos.length
-      ? `Leído: ${leidos.join(', ')}. Revísalo antes de generar el pedido.${ojo}`
-      : `No se ve la dirección ni el teléfono en la foto: escríbelos a mano. La foto se guarda igual.${ojo}`);
+      ? `Leído en la foto ${numero}: ${leidos.join(', ')}. Revísalo antes de generar el pedido.${ojo}`
+      : `En la foto ${numero} no se lee la dirección, el teléfono ni el precio: escríbelos a mano. La foto se guarda igual.${ojo}`);
   };
 
   const handleReturn = (driver: Driver) => {
@@ -178,18 +179,26 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
             <h3 className="text-lg font-bold mb-4">Ingresar Nuevo Pedido</h3>
             {restaurantId === RESTAURANTE_CON_TICKET && (
               <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <BotonCamara
-                  texto={ticketFoto ? 'Repetir foto' : 'Foto del ticket y la dirección'}
-                  onFoto={leerFoto}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-60 shrink-0"
-                />
-                {ticketFoto && <img src={ticketFoto} alt="Foto del ticket" className="h-16 w-16 object-cover rounded-lg border border-amber-200 shrink-0" />}
+                {ticketFotos.length < MAX_FOTOS && (
+                  <BotonCamara
+                    texto={ticketFotos.length === 0 ? 'Foto de la comanda' : 'Añadir el ticket del precio'}
+                    onFoto={leerFoto}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-60 shrink-0"
+                  />
+                )}
+                {ticketFotos.length > 0 && (
+                  <div className="flex gap-2 shrink-0">
+                    {ticketFotos.map((foto, i) => (
+                      <img key={i} src={foto} alt={`Foto ${i + 1} del pedido`} className="h-16 w-16 object-cover rounded-lg border border-amber-200" />
+                    ))}
+                  </div>
+                )}
                 <p className="text-sm text-amber-900 flex-1">
-                  {leyendoTicket ? 'Leyendo la dirección y el teléfono…' : avisoTicket || 'Saca una foto y la dirección y el teléfono se rellenan solos. La foto queda guardada con el pedido.'}
+                  {leyendoTicket ? 'Leyendo la foto…' : avisoTicket || 'Saca una foto de la comanda y se rellenan solos la dirección y el teléfono. Después puedes añadir el ticket del precio. Las fotos quedan guardadas con el pedido.'}
                 </p>
-                {ticketFoto && !leyendoTicket && (
-                  <button type="button" onClick={() => { setTicketFoto(null); setAvisoTicket(''); }} className="text-xs text-amber-800 underline self-start sm:self-center">
-                    Quitar foto
+                {ticketFotos.length > 0 && !leyendoTicket && (
+                  <button type="button" onClick={() => { setTicketFotos([]); setAvisoTicket(''); }} className="text-xs text-amber-800 underline self-start sm:self-center">
+                    Quitar fotos
                   </button>
                 )}
               </div>
@@ -377,9 +386,10 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                           <Clock className="w-3 h-3" /> Editar
                         </button>
                         {order.restaurantId === RESTAURANTE_CON_TICKET && updateOrder && (
-                          order.hasTicket
-                            ? <VerTicket orderId={order.id} orderNumber={order.orderNumber} />
-                            : <AdjuntarTicket order={order} updateOrder={updateOrder} />
+                          <>
+                            {order.hasTicket && <VerTicket orderId={order.id} orderNumber={order.orderNumber} />}
+                            <AdjuntarTicket order={order} updateOrder={updateOrder} />
+                          </>
                         )}
                       </div>
                     </div>

@@ -35,19 +35,27 @@ export async function comprimirFoto(archivo: File): Promise<string> {
   return foto;
 }
 
-export async function guardarTicket(orderId: string, imagen: string, datos: { orderNumber: string; restaurantId: string }) {
-  await setDoc(doc(db, 'config', `ticket_${orderId}`), {
-    imagen,
-    orderId,
-    orderNumber: datos.orderNumber,
-    restaurantId: datos.restaurantId,
-    guardadoEn: new Date().toISOString(),
-  });
+// Hasta dos fotos por pedido: la comanda escrita a mano (dirección y teléfono) y el ticket impreso (precio).
+// Cada foto va en su propio documento (ticket_<id> y ticket_<id>_2) porque dos juntas pueden pasar de 1 MiB.
+export const MAX_FOTOS = 2;
+const idFoto = (orderId: string, i: number) => (i === 0 ? `ticket_${orderId}` : `ticket_${orderId}_${i + 1}`);
+
+// desde: posición de la primera foto (1 para añadir el ticket del precio a un pedido que ya tiene la comanda)
+export async function guardarTicket(orderId: string, imagenes: string[], datos: { orderNumber: string; restaurantId: string }, desde = 0) {
+  await Promise.all(imagenes.slice(0, MAX_FOTOS - desde).map((imagen, i) =>
+    setDoc(doc(db, 'config', idFoto(orderId, i + desde)), {
+      imagen,
+      orderId,
+      orderNumber: datos.orderNumber,
+      restaurantId: datos.restaurantId,
+      guardadoEn: new Date().toISOString(),
+    })
+  ));
 }
 
-export async function cargarTicket(orderId: string): Promise<string | null> {
-  const snap = await getDoc(doc(db, 'config', `ticket_${orderId}`));
-  return snap.exists() ? (snap.data().imagen as string) : null;
+export async function cargarTicket(orderId: string): Promise<string[]> {
+  const snaps = await Promise.all(Array.from({ length: MAX_FOTOS }, (_, i) => getDoc(doc(db, 'config', idFoto(orderId, i)))));
+  return snaps.filter((s) => s.exists()).map((s) => s.data()!.imagen as string);
 }
 
 // Pide a la IA (api/leer-ticket) que lea teléfono, dirección, importe y nombre de la foto.

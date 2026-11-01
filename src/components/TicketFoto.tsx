@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react';
 import { Camera, Loader2, Receipt, X } from 'lucide-react';
 import { Order } from '../types';
-import { cargarTicket, comprimirFoto, guardarTicket } from '../lib/ticket';
+import { cargarTicket, comprimirFoto, guardarTicket, MAX_FOTOS } from '../lib/ticket';
+
+// Cuántas fotos tiene guardadas un pedido (los primeros pedidos con foto no llevaban ticketFotos).
+export const fotosDe = (order: Order) => order.ticketFotos ?? (order.hasTicket ? 1 : 0);
 
 // Abre la cámara trasera del móvil (en el ordenador, el selector de fotos) y devuelve la foto ya comprimida.
 export function BotonCamara({ onFoto, texto, className }: { onFoto: (foto: string) => void; texto: string; className?: string }) {
@@ -37,19 +40,17 @@ export function BotonCamara({ onFoto, texto, className }: { onFoto: (foto: strin
   );
 }
 
-// Muestra la foto guardada del pedido. Solo la descarga cuando alguien la abre.
+// Muestra las fotos guardadas del pedido (comanda y ticket). Solo las descarga cuando alguien las abre.
 export function VerTicket({ orderId, orderNumber, className }: { orderId: string; orderNumber: string; className?: string }) {
   const [abierto, setAbierto] = useState(false);
-  const [foto, setFoto] = useState<string | null | undefined>(undefined); // undefined = aún cargando
+  const [fotos, setFotos] = useState<string[] | undefined>(undefined); // undefined = aún cargando
 
   const abrir = async () => {
     setAbierto(true);
-    if (foto === undefined) {
-      try {
-        setFoto(await cargarTicket(orderId));
-      } catch {
-        setFoto(null);
-      }
+    try {
+      setFotos(await cargarTicket(orderId)); // se vuelve a cargar por si se añadió el ticket del precio
+    } catch {
+      setFotos((f) => f ?? []);
     }
   };
 
@@ -64,19 +65,23 @@ export function VerTicket({ orderId, orderNumber, className }: { orderId: string
       </button>
       {abierto && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setAbierto(false)}>
-          <div className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg max-h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between text-white mb-2">
-              <span className="font-bold">Ticket del pedido #{orderNumber}</span>
+              <span className="font-bold">Pedido #{orderNumber}</span>
               <button type="button" onClick={() => setAbierto(false)} className="p-2 rounded-full hover:bg-white/10" aria-label="Cerrar">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {foto === undefined ? (
-              <p className="text-white text-center py-10">Cargando la foto…</p>
-            ) : foto ? (
-              <img src={foto} alt={`Ticket del pedido ${orderNumber}`} className="w-full max-h-[80vh] object-contain rounded-lg bg-white" />
+            {fotos === undefined ? (
+              <p className="text-white text-center py-10">Cargando las fotos…</p>
+            ) : fotos.length ? (
+              <div className="flex flex-col gap-3">
+                {fotos.map((foto, i) => (
+                  <img key={i} src={foto} alt={`Foto ${i + 1} del pedido ${orderNumber}`} className="w-full max-h-[80vh] object-contain rounded-lg bg-white" />
+                ))}
+              </div>
             ) : (
-              <p className="text-white text-center py-10">Este pedido no tiene foto guardada.</p>
+              <p className="text-white text-center py-10">Este pedido no tiene fotos guardadas.</p>
             )}
           </div>
         </div>
@@ -85,18 +90,20 @@ export function VerTicket({ orderId, orderNumber, className }: { orderId: string
   );
 }
 
-// Para un pedido ya creado sin foto: sacarla ahora y dejarla guardada con el pedido.
+// Para un pedido ya creado: sacar la foto que falta (la comanda, o después el ticket del precio) y guardarla.
 export function AdjuntarTicket({ order, updateOrder, className }: { order: Order; updateOrder: (o: Order) => void; className?: string }) {
   const [guardando, setGuardando] = useState(false);
+  const yaTiene = fotosDe(order);
+  if (yaTiene >= MAX_FOTOS) return null;
   return (
     <BotonCamara
-      texto={guardando ? 'Guardando…' : 'Foto ticket'}
+      texto={guardando ? 'Guardando…' : yaTiene === 0 ? 'Foto ticket' : 'Añadir ticket precio'}
       className={className ?? 'text-[10px] bg-gray-50 text-gray-600 px-2 py-1 rounded border border-dashed border-gray-300 hover:bg-amber-50 hover:text-amber-700 transition-colors w-fit flex items-center gap-1'}
       onFoto={async (foto) => {
         setGuardando(true);
         try {
-          await guardarTicket(order.id, foto, order);
-          updateOrder({ ...order, hasTicket: true, ticketAt: new Date().toISOString() });
+          await guardarTicket(order.id, [foto], order, yaTiene);
+          updateOrder({ ...order, hasTicket: true, ticketAt: new Date().toISOString(), ticketFotos: yaTiene + 1 });
         } catch {
           alert('No se pudo guardar la foto. Inténtalo otra vez.');
         } finally {

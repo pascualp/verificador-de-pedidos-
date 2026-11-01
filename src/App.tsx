@@ -221,21 +221,21 @@ export default function App() {
     }
   };
 
-  const addOrder = async (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string = '', prepTime?: number, price?: number, ticketFoto?: string) => {
+  const addOrder = async (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string = '', prepTime?: number, price?: number, ticketFotos?: string[]) => {
     const id = crypto.randomUUID();
-    // La foto del ticket se guarda antes que el pedido: si falla, el pedido se crea igual, sin foto.
-    let hasTicket = false;
-    if (ticketFoto) {
+    // Las fotos del ticket se guardan antes que el pedido: si falla, el pedido se crea igual, sin fotos.
+    let fotosGuardadas = 0;
+    if (ticketFotos?.length) {
       try {
-        await guardarTicket(id, ticketFoto, { orderNumber, restaurantId });
-        hasTicket = true;
+        await guardarTicket(id, ticketFotos, { orderNumber, restaurantId });
+        fotosGuardadas = ticketFotos.length;
       } catch (e) {
         console.error('No se pudo guardar la foto del ticket', e);
         alert('El pedido se crea, pero la foto del ticket no se pudo guardar.');
       }
     }
     const newOrder: Order = {
-      ...(hasTicket ? { hasTicket: true, ticketAt: new Date().toISOString() } : {}),
+      ...(fotosGuardadas ? { hasTicket: true, ticketAt: new Date().toISOString(), ticketFotos: fotosGuardadas } : {}),
       id,
       orderNumber,
       customerName,

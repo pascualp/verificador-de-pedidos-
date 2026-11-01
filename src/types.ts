@@ -70,7 +70,8 @@ export interface Order {
   paymentMethod?: 'efectivo' | 'tarjeta';
   isPaid?: boolean;
   isPrepared?: boolean;
-  hasTicket?: boolean; // s'Estatua: foto del ticket guardada en config/ticket_<id>
+  hasTicket?: boolean; // s'Estatua: fotos de la comanda / ticket guardadas en config/ticket_<id>(_2)
   ticketAt?: string;
+  ticketFotos?: number;
 }
 

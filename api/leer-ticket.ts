@@ -17,7 +17,8 @@ const Lectura = z.object({
 });
 
 const INSTRUCCIONES = `Esta foto es de un pedido a domicilio de la pizzería s'Estatua, en Llucmajor (Mallorca).
-Suele ser una comanda de talonario escrita a mano, a veces junto a un ticket impreso de caja.
+Puede ser la comanda de talonario escrita a mano, el ticket impreso de caja, o los dos juntos.
+El ticket impreso de caja solo sirve para el PRECIO: de ahí sale el importe (el total). No trae dirección ni teléfono.
 
 Cómo la escriben:
 - El TELÉFONO del cliente va casi siempre escrito EN VERTICAL, de lado, en el margen izquierdo. Gira la lectura para leerlo.
