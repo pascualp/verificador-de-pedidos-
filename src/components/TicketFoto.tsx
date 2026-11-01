@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Camera, Loader2, Receipt, X } from 'lucide-react';
 import { Order } from '../types';
-import { cargarTicket, comprimirFoto, guardarTicket, MAX_FOTOS } from '../lib/ticket';
+import { cargarTicket, comprimirFoto, guardarTicket, leerTicket, MAX_FOTOS, rellenarPedido } from '../lib/ticket';
 
 // Cuántas fotos tiene guardadas un pedido (los primeros pedidos con foto no llevaban ticketFotos).
 export const fotosDe = (order: Order) => order.ticketFotos ?? (order.hasTicket ? 1 : 0);
@@ -91,24 +91,38 @@ export function VerTicket({ orderId, orderNumber, className }: { orderId: string
 }
 
 // Para un pedido ya creado: sacar la foto que falta (la comanda, o después el ticket del precio) y guardarla.
-export function AdjuntarTicket({ order, updateOrder, className }: { order: Order; updateOrder: (o: Order) => void; className?: string }) {
-  const [guardando, setGuardando] = useState(false);
+// leerDatos (app del repartidor): si al pedido le falta la dirección o el teléfono, la IA los saca de la foto.
+// El precio nunca se toca desde aquí, para no descuadrar la caja del repartidor.
+export function AdjuntarTicket({ order, updateOrder, className, leerDatos = false }: { order: Order; updateOrder: (o: Order) => void; className?: string; leerDatos?: boolean }) {
+  const [estado, setEstado] = useState<'' | 'guardando' | 'leyendo'>('');
   const yaTiene = fotosDe(order);
   if (yaTiene >= MAX_FOTOS) return null;
   return (
     <BotonCamara
-      texto={guardando ? 'Guardando…' : yaTiene === 0 ? 'Foto ticket' : 'Añadir ticket precio'}
+      texto={estado === 'guardando' ? 'Guardando…' : estado === 'leyendo' ? 'Leyendo la dirección…' : yaTiene === 0 ? 'Foto ticket' : 'Añadir ticket precio'}
       className={className ?? 'text-[10px] bg-gray-50 text-gray-600 px-2 py-1 rounded border border-dashed border-gray-300 hover:bg-amber-50 hover:text-amber-700 transition-colors w-fit flex items-center gap-1'}
       onFoto={async (foto) => {
-        setGuardando(true);
+        setEstado('guardando');
         try {
           await guardarTicket(order.id, [foto], order, yaTiene);
           updateOrder({ ...order, hasTicket: true, ticketAt: new Date().toISOString(), ticketFotos: yaTiene + 1 });
         } catch {
           alert('No se pudo guardar la foto. Inténtalo otra vez.');
-        } finally {
-          setGuardando(false);
+          setEstado('');
+          return;
         }
+        if (leerDatos && (!order.address || !order.customerPhone)) {
+          setEstado('leyendo');
+          const r = await leerTicket(foto);
+          if (!('error' in r)) {
+            await rellenarPedido(order.id, {
+              ...(!order.address && r.direccion ? { address: r.direccion } : {}),
+              ...(!order.customerPhone && r.telefono ? { customerPhone: r.telefono } : {}),
+            }).catch(() => alert('La foto se guardó, pero no se pudo apuntar la dirección leída.'));
+            if (r.dudas) alert(`Revisa la dirección y el teléfono: ${r.dudas}`);
+          }
+        }
+        setEstado('');
       }}
     />
   );

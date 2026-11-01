@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Driver, Order } from '../types';
 import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft, CreditCard, Banknote, Pizza, TreePalm, Navigation } from 'lucide-react';
 import { enlaceGoogleMaps, enlaceWaze, RESTAURANTE_CON_TICKET } from '../lib/ticket';
-import { VerTicket } from './TicketFoto';
+import { AdjuntarTicket, VerTicket } from './TicketFoto';
 import { TimeRemaining } from './TimeRemaining';
 import { addCollected, addCollectedBatch, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
 
@@ -313,7 +313,25 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                               {order.customerPhone}
                             </a>
                           )}
-                          {order.hasTicket && <VerTicket orderId={order.id} orderNumber={order.orderNumber} />}
+                          {order.restaurantId === RESTAURANTE_CON_TICKET && (
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {order.hasTicket && (
+                                <VerTicket
+                                  orderId={order.id}
+                                  orderNumber={order.orderNumber}
+                                  className="text-sm bg-amber-50 text-amber-700 px-3 py-2 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1.5 font-bold"
+                                />
+                              )}
+                              {updateOrder && (
+                                <AdjuntarTicket
+                                  order={order}
+                                  updateOrder={updateOrder}
+                                  leerDatos
+                                  className="text-sm bg-white text-gray-700 px-3 py-2 rounded-lg border border-dashed border-gray-300 hover:bg-amber-50 hover:text-amber-700 transition-colors flex items-center gap-1.5 font-bold disabled:opacity-60"
+                                />
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {order.address && (

@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 // Foto del ticket de s'Estatua. Se guarda aparte del pedido (config/ticket_<id>) para que la lista
@@ -56,6 +56,12 @@ export async function guardarTicket(orderId: string, imagenes: string[], datos: 
 export async function cargarTicket(orderId: string): Promise<string[]> {
   const snaps = await Promise.all(Array.from({ length: MAX_FOTOS }, (_, i) => getDoc(doc(db, 'config', idFoto(orderId, i)))));
   return snaps.filter((s) => s.exists()).map((s) => s.data()!.imagen as string);
+}
+
+// Escribe SOLO estos campos del pedido (merge). La lectura tarda unos segundos y el pedido puede haber
+// cambiado mientras tanto: reescribir el pedido entero con una copia vieja borraría esos cambios.
+export async function rellenarPedido(orderId: string, campos: { address?: string; customerPhone?: string }) {
+  if (Object.keys(campos).length) await updateDoc(doc(db, 'orders', orderId), campos);
 }
 
 // Pide a la IA (api/leer-ticket) que lea teléfono, dirección, importe y nombre de la foto.
