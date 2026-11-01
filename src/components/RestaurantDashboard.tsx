@@ -3,8 +3,10 @@ import { Driver, Order } from '../types';
 import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X, Edit2, Check, Bike } from 'lucide-react';
 import { TimeRemaining } from './TimeRemaining';
 import { addCollected, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
+import { leerTicket, RESTAURANTE_CON_TICKET } from '../lib/ticket';
+import { AdjuntarTicket, BotonCamara, VerTicket } from './TicketFoto';
 
-export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
+export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number, ticketFoto?: string) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
   // New order form state
   const [newOrderNumber, setNewOrderNumber] = useState('');
   const [newCustomerName, setNewCustomerName] = useState('');
@@ -17,6 +19,10 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
   const [selectedDriverHistory, setSelectedDriverHistory] = useState<Driver | null>(null);
   const [historyDate, setHistoryDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
   const [currentTab, setCurrentTab] = useState<'active' | 'history'>('active');
+  // s'Estatua: foto del ticket / papel con la dirección, que la IA lee para rellenar el pedido
+  const [ticketFoto, setTicketFoto] = useState<string | null>(null);
+  const [leyendoTicket, setLeyendoTicket] = useState(false);
+  const [avisoTicket, setAvisoTicket] = useState('');
 
   const isPriceRequired = restaurantId === 'restaurant2';
 
@@ -38,15 +44,43 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
         generatedOrderNumber = nextNumber.toString();
       }
 
-      addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress, newPrepTime ? parseInt(newPrepTime, 10) : undefined, newPrice ? parseFloat(newPrice) : undefined);
+      addOrder(generatedOrderNumber, newCustomerName, newCustomerPhone, restaurantId, newCustomerAddress, newPrepTime ? parseInt(newPrepTime, 10) : undefined, newPrice ? parseFloat(newPrice) : undefined, ticketFoto || undefined);
       setNewOrderNumber('');
       setNewCustomerName('');
       setNewCustomerPhone('');
       setNewCustomerAddress('');
       setNewPrepTime('');
       setNewPrice('');
+      setTicketFoto(null);
+      setAvisoTicket('');
       setIsAddingOrder(false);
     }
+  };
+
+  const leerFoto = async (foto: string) => {
+    setTicketFoto(foto);
+    setLeyendoTicket(true);
+    setAvisoTicket('');
+    const r = await leerTicket(foto);
+    setLeyendoTicket(false);
+    if ('error' in r) {
+      setAvisoTicket(r.error === 'sin_clave'
+        ? 'La lectura automática aún no está activada: escribe los datos a mano. La foto se guarda igual.'
+        : 'No se pudo leer la foto: escribe los datos a mano. La foto se guarda igual.');
+      return;
+    }
+    // Solo rellena lo que está vacío, para no pisar lo que ya escribieron
+    if (r.telefono) setNewCustomerPhone(v => v || r.telefono!);
+    if (r.direccion) setNewCustomerAddress(v => v || r.direccion!);
+    if (r.nombre) setNewCustomerName(v => v || r.nombre!);
+    if (r.importe != null) {
+      setNewPrice(v => v || String(r.importe));
+      setPriceError(false);
+    }
+    const leidos = [r.direccion && 'dirección', r.telefono && 'teléfono', r.importe != null && 'importe'].filter(Boolean);
+    setAvisoTicket(leidos.length
+      ? `Leído: ${leidos.join(', ')}. Revísalo antes de generar el pedido.`
+      : 'No se ve la dirección ni el teléfono en la foto: escríbelos a mano. La foto se guarda igual.');
   };
 
   const handleReturn = (driver: Driver) => {
@@ -141,6 +175,24 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
             {isAddingOrder && (
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
             <h3 className="text-lg font-bold mb-4">Ingresar Nuevo Pedido</h3>
+            {restaurantId === RESTAURANTE_CON_TICKET && (
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <BotonCamara
+                  texto={ticketFoto ? 'Repetir foto' : 'Foto del ticket y la dirección'}
+                  onFoto={leerFoto}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-60 shrink-0"
+                />
+                {ticketFoto && <img src={ticketFoto} alt="Foto del ticket" className="h-16 w-16 object-cover rounded-lg border border-amber-200 shrink-0" />}
+                <p className="text-sm text-amber-900 flex-1">
+                  {leyendoTicket ? 'Leyendo la dirección y el teléfono…' : avisoTicket || 'Saca una foto y la dirección y el teléfono se rellenan solos. La foto queda guardada con el pedido.'}
+                </p>
+                {ticketFoto && !leyendoTicket && (
+                  <button type="button" onClick={() => { setTicketFoto(null); setAvisoTicket(''); }} className="text-xs text-amber-800 underline self-start sm:self-center">
+                    Quitar foto
+                  </button>
+                )}
+              </div>
+            )}
             <form onSubmit={handleAddOrder} className="flex flex-col md:flex-row gap-4 items-end">
               <div className="w-24 shrink-0">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Nº Pedido</label>
@@ -246,7 +298,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex flex-col gap-1">
                       <span className="font-black text-lg">#{order.orderNumber}</span>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {order.price !== undefined ? (
                           <div className="flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 w-fit">
                             <span className="text-emerald-700 font-bold text-sm">{(order.price === 0 || order.isPaid) ? "Pagado" : "$" + order.price.toFixed(2)}</span>
@@ -323,6 +375,11 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                         >
                           <Clock className="w-3 h-3" /> Editar
                         </button>
+                        {order.restaurantId === RESTAURANTE_CON_TICKET && updateOrder && (
+                          order.hasTicket
+                            ? <VerTicket orderId={order.id} orderNumber={order.orderNumber} />
+                            : <AdjuntarTicket order={order} updateOrder={updateOrder} />
+                        )}
                       </div>
                     </div>
                     
@@ -471,6 +528,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                               <span className="text-xs leading-relaxed line-clamp-2">{order.address}</span>
                             </div>
                           )}
+                          {order.hasTicket && <VerTicket orderId={order.id} orderNumber={order.orderNumber} />}
                         </div>
 
                         {order.driverId && (
@@ -771,6 +829,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                             <span className="truncate">{order.address}</span>
                           </div>
                         )}
+                        {order.hasTicket && <VerTicket orderId={order.id} orderNumber={order.orderNumber} />}
                         {order.assignedAt && (
                           <div className="flex items-center gap-2 text-xs text-gray-400 mt-1 bg-gray-50 p-2 rounded-lg w-fit">
                             <Clock className="w-3.5 h-3.5" />

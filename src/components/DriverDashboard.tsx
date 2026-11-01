@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Driver, Order } from '../types';
-import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft, CreditCard, Banknote, Pizza, TreePalm } from 'lucide-react';
+import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft, CreditCard, Banknote, Pizza, TreePalm, Navigation } from 'lucide-react';
+import { enlaceGoogleMaps, enlaceWaze, RESTAURANTE_CON_TICKET } from '../lib/ticket';
+import { VerTicket } from './TicketFoto';
 import { TimeRemaining } from './TimeRemaining';
 import { addCollected, addCollectedBatch, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
 
@@ -311,6 +313,7 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                               {order.customerPhone}
                             </a>
                           )}
+                          {order.hasTicket && <VerTicket orderId={order.id} orderNumber={order.orderNumber} />}
                         </div>
 
                         {order.address && (
@@ -319,15 +322,28 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
                               <MapPin className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
                               {order.address}
                             </div>
+                            <div className="flex gap-2">
                             <a 
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`}
+                              href={enlaceGoogleMaps(order.address, order.restaurantId)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="w-full bg-rose-50 text-rose-600 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors border border-rose-100"
+                              className="flex-1 bg-rose-50 text-rose-600 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors border border-rose-100"
                             >
                               <MapPin className="w-4 h-4" />
-                              VER EN GPS
+                              {order.restaurantId === RESTAURANTE_CON_TICKET ? 'GOOGLE MAPS' : 'VER EN GPS'}
                             </a>
+                            {order.restaurantId === RESTAURANTE_CON_TICKET && (
+                              <a
+                                href={enlaceWaze(order.address, order.restaurantId)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 bg-sky-50 text-sky-700 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-sky-100 transition-colors border border-sky-100"
+                              >
+                                <Navigation className="w-4 h-4" />
+                                WAZE
+                              </a>
+                            )}
+                            </div>
                           </div>
                         )}
                         

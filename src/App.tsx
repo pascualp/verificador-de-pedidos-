@@ -6,6 +6,7 @@ import { DriverDashboard } from './components/DriverDashboard';
 import { Driver, Order, AppConfig, OperationType, FirestoreErrorInfo } from './types';
 import { Store, Building2, Lock, ArrowRight, X, Eye, EyeOff, Bike, Download } from 'lucide-react';
 import { db } from './firebase';
+import { guardarTicket } from './lib/ticket';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, getDocFromServer, query, orderBy, limit } from 'firebase/firestore';
 
 
@@ -220,9 +221,22 @@ export default function App() {
     }
   };
 
-  const addOrder = async (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string = '', prepTime?: number, price?: number) => {
+  const addOrder = async (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string = '', prepTime?: number, price?: number, ticketFoto?: string) => {
+    const id = crypto.randomUUID();
+    // La foto del ticket se guarda antes que el pedido: si falla, el pedido se crea igual, sin foto.
+    let hasTicket = false;
+    if (ticketFoto) {
+      try {
+        await guardarTicket(id, ticketFoto, { orderNumber, restaurantId });
+        hasTicket = true;
+      } catch (e) {
+        console.error('No se pudo guardar la foto del ticket', e);
+        alert('El pedido se crea, pero la foto del ticket no se pudo guardar.');
+      }
+    }
     const newOrder: Order = {
-      id: crypto.randomUUID(),
+      ...(hasTicket ? { hasTicket: true, ticketAt: new Date().toISOString() } : {}),
+      id,
       orderNumber,
       customerName,
       customerPhone,
