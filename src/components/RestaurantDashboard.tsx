@@ -3,7 +3,7 @@ import { Driver, Order } from '../types';
 import { User, RotateCcw, Clock, Plus, MapPin, Trash2, FileText, X, Edit2, Check, Bike } from 'lucide-react';
 import { TimeRemaining } from './TimeRemaining';
 import { addCollected, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
-import { leerTicket, MAX_FOTOS, RESTAURANTE_CON_TICKET } from '../lib/ticket';
+import { direccionConPiso, esNumeroTalonario, LecturaTicket, leerTicket, MAX_FOTOS, RESTAURANTE_CON_TICKET, unirLecturas } from '../lib/ticket';
 import { AdjuntarTicket, BotonCamara, VerTicket } from './TicketFoto';
 
 export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number, ticketFotos?: string[]) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
@@ -39,7 +39,10 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
       // Usar número provisto o auto-generar número de pedido
       let generatedOrderNumber = newOrderNumber.trim();
       if (!generatedOrderNumber) {
-        const existingNumbers = (orders || []).map(o => parseInt(o.orderNumber, 10)).filter(n => !isNaN(n));
+        // En s'Estatua los números del talonario (7 cifras, leídos de la foto) no cuentan para la numeración automática
+        const existingNumbers = (orders || [])
+          .filter(o => !(restaurantId === RESTAURANTE_CON_TICKET && esNumeroTalonario(o.orderNumber)))
+          .map(o => parseInt(o.orderNumber, 10)).filter(n => !isNaN(n));
         const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1000;
         generatedOrderNumber = nextNumber.toString();
       }
@@ -57,32 +60,37 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
     }
   };
 
-  const leerFoto = async (foto: string) => {
-    const numero = ticketFotos.length + 1;
-    setTicketFotos(fotos => [...fotos, foto].slice(0, MAX_FOTOS));
+  // Una foto, o dos elegidas a la vez en la galería (la comanda y el ticket); cada una se lee por separado y se juntan
+  const leerFotos = async (nuevas: string[]) => {
+    const desde = ticketFotos.length + 1;
+    const cuales = nuevas.length > 1 ? `las fotos ${desde} y ${desde + 1}` : `la foto ${desde}`;
+    setTicketFotos(fotos => [...fotos, ...nuevas].slice(0, MAX_FOTOS));
     setLeyendoTicket(true);
     setAvisoTicket('');
-    const r = await leerTicket(foto);
+    const respuestas = await Promise.all(nuevas.map(leerTicket));
     setLeyendoTicket(false);
-    if ('error' in r) {
-      setAvisoTicket(r.error === 'sin_clave'
+    const lecturas = respuestas.filter((r): r is LecturaTicket => !('error' in r));
+    if (!lecturas.length) {
+      setAvisoTicket(respuestas.some(r => 'error' in r && r.error === 'sin_clave')
         ? 'La lectura automática aún no está activada: escribe los datos a mano. La foto se guarda igual.'
-        : `No se pudo leer la foto ${numero}: escribe los datos a mano. La foto se guarda igual.`);
+        : `No se pudo leer ${cuales}: escribe los datos a mano. La foto se guarda igual.`);
       return;
     }
+    const r = unirLecturas(lecturas);
     // Solo rellena lo que está vacío, para no pisar lo que ya escribieron
+    if (r.numero) setNewOrderNumber(v => v || r.numero!);
     if (r.telefono) setNewCustomerPhone(v => v || r.telefono!);
-    if (r.direccion) setNewCustomerAddress(v => v || r.direccion!);
+    if (r.direccion) setNewCustomerAddress(v => v || direccionConPiso(r.direccion!, r.piso));
     if (r.nombre) setNewCustomerName(v => v || r.nombre!);
     if (r.importe != null) {
       setNewPrice(v => v || String(r.importe));
       setPriceError(false);
     }
-    const leidos = [r.direccion && 'dirección', r.telefono && 'teléfono', r.importe != null && 'importe'].filter(Boolean);
+    const leidos = [r.numero && `nº ${r.numero}`, r.direccion && 'dirección', r.piso && 'piso', r.telefono && 'teléfono', r.importe != null && 'importe'].filter(Boolean);
     const ojo = r.dudas ? ` Ojo: ${r.dudas}` : '';
     setAvisoTicket(leidos.length
-      ? `Leído en la foto ${numero}: ${leidos.join(', ')}. Revísalo antes de generar el pedido.${ojo}`
-      : `En la foto ${numero} no se lee la dirección, el teléfono ni el precio: escríbelos a mano. La foto se guarda igual.${ojo}`);
+      ? `Leído en ${cuales}: ${leidos.join(', ')}. Revísalo antes de generar el pedido.${ojo}`
+      : `En ${cuales} no se lee la dirección, el teléfono ni el precio: escríbelos a mano. La foto se guarda igual.${ojo}`);
   };
 
   const handleReturn = (driver: Driver) => {
@@ -182,7 +190,8 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                 {ticketFotos.length < MAX_FOTOS && (
                   <BotonCamara
                     texto={ticketFotos.length === 0 ? 'Foto de la comanda' : 'Añadir el ticket del precio'}
-                    onFoto={leerFoto}
+                    max={MAX_FOTOS - ticketFotos.length}
+                    onFotos={leerFotos}
                     className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-60 shrink-0"
                   />
                 )}
@@ -194,7 +203,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                   </div>
                 )}
                 <p className="text-sm text-amber-900 flex-1">
-                  {leyendoTicket ? 'Leyendo la foto…' : avisoTicket || 'Saca una foto de la comanda (o elígela de la galería) y se rellenan solos la dirección y el teléfono. Después puedes añadir el ticket del precio. Las fotos quedan guardadas con el pedido.'}
+                  {leyendoTicket ? 'Leyendo la foto…' : avisoTicket || 'Saca una foto de la comanda y se rellenan solos el número del talonario, la dirección y el teléfono. Después añade el ticket del precio. En la galería puedes elegir las dos fotos a la vez. Las fotos quedan guardadas con el pedido.'}
                 </p>
                 {ticketFotos.length > 0 && !leyendoTicket && (
                   <button type="button" onClick={() => { setTicketFotos([]); setAvisoTicket(''); }} className="text-xs text-amber-800 underline self-start sm:self-center">

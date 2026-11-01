@@ -1,25 +1,26 @@
 import React, { useRef, useState } from 'react';
 import { Camera, Images, Loader2, Receipt, X } from 'lucide-react';
 import { Order } from '../types';
-import { cargarTicket, comprimirFoto, guardarTicket, leerTicket, MAX_FOTOS, rellenarPedido } from '../lib/ticket';
+import { cargarTicket, comprimirFoto, direccionConPiso, esNumeroTalonario, guardarTicket, LecturaTicket, leerTicket, MAX_FOTOS, rellenarPedido, unirLecturas } from '../lib/ticket';
 
 // Cuántas fotos tiene guardadas un pedido (los primeros pedidos con foto no llevaban ticketFotos).
 export const fotosDe = (order: Order) => order.ticketFotos ?? (order.hasTicket ? 1 : 0);
 
-// Dos botones: uno abre la cámara trasera del móvil y el otro la galería, por si la foto se sacó antes
-// (en el ordenador los dos abren el selector de archivos). Devuelve la foto ya comprimida.
-export function BotonCamara({ onFoto, texto, className }: { onFoto: (foto: string) => void; texto: string; className?: string }) {
+// Dos botones: uno abre la cámara trasera del móvil y el otro la galería, por si las fotos se sacaron antes
+// (en el ordenador los dos abren el selector de archivos). En la galería se pueden elegir hasta "max" fotos
+// de una vez (la comanda y el ticket). Devuelve las fotos ya comprimidas.
+export function BotonCamara({ onFotos, texto, className, max = 1 }: { onFotos: (fotos: string[]) => void; texto: string; className?: string; max?: number }) {
   const camara = useRef<HTMLInputElement>(null);
   const galeria = useRef<HTMLInputElement>(null);
   const [ocupado, setOcupado] = useState(false);
 
-  const usarFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const archivo = e.target.files?.[0];
+  const usarFotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivos = Array.from(e.target.files ?? []).slice(0, max);
     e.target.value = '';
-    if (!archivo) return;
+    if (!archivos.length) return;
     setOcupado(true);
     try {
-      onFoto(await comprimirFoto(archivo));
+      onFotos(await Promise.all(archivos.map(comprimirFoto)));
     } catch {
       alert('No se pudo usar esa foto. Prueba con otra.');
     } finally {
@@ -30,8 +31,8 @@ export function BotonCamara({ onFoto, texto, className }: { onFoto: (foto: strin
   return (
     <div className="flex flex-wrap gap-2">
       {/* capture obliga a usar la cámara; sin capture el móvil deja elegir de la galería */}
-      <input ref={camara} type="file" accept="image/*" capture="environment" className="hidden" onChange={usarFoto} />
-      <input ref={galeria} type="file" accept="image/*" className="hidden" onChange={usarFoto} />
+      <input ref={camara} type="file" accept="image/*" capture="environment" className="hidden" onChange={usarFotos} />
+      <input ref={galeria} type="file" accept="image/*" multiple={max > 1} className="hidden" onChange={usarFotos} />
       <button type="button" onClick={() => camara.current?.click()} disabled={ocupado} className={className}>
         {ocupado ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
         {texto}
@@ -97,7 +98,9 @@ export function VerTicket({ orderId, orderNumber, className }: { orderId: string
 }
 
 // Para un pedido ya creado: sacar la foto que falta (la comanda, o después el ticket del precio) y guardarla.
-// leerDatos (app del repartidor): si al pedido le falta la dirección o el teléfono, la IA los saca de la foto.
+// La IA lee el número rojo del talonario para unir el papel con este pedido: avisa si no coincide y, si el pedido
+// lleva un número de la app, ofrece ponerle el del papel.
+// leerDatos (app del repartidor): si al pedido le falta la dirección o el teléfono, también los saca de la foto.
 // El precio nunca se toca desde aquí, para no descuadrar la caja del repartidor.
 export function AdjuntarTicket({ order, updateOrder, className, leerDatos = false }: { order: Order; updateOrder: (o: Order) => void; className?: string; leerDatos?: boolean }) {
   const [estado, setEstado] = useState<'' | 'guardando' | 'leyendo'>('');
@@ -105,30 +108,38 @@ export function AdjuntarTicket({ order, updateOrder, className, leerDatos = fals
   if (yaTiene >= MAX_FOTOS) return null;
   return (
     <BotonCamara
-      texto={estado === 'guardando' ? 'Guardando…' : estado === 'leyendo' ? 'Leyendo la dirección…' : yaTiene === 0 ? 'Foto ticket' : 'Añadir ticket precio'}
+      max={MAX_FOTOS - yaTiene}
+      texto={estado === 'guardando' ? 'Guardando…' : estado === 'leyendo' ? 'Leyendo el papel…' : yaTiene === 0 ? 'Foto ticket' : 'Añadir ticket precio'}
       className={className ?? 'text-[10px] bg-gray-50 text-gray-600 px-2 py-1 rounded border border-dashed border-gray-300 hover:bg-amber-50 hover:text-amber-700 transition-colors w-fit flex items-center gap-1'}
-      onFoto={async (foto) => {
+      onFotos={async (fotos) => {
         setEstado('guardando');
         try {
-          await guardarTicket(order.id, [foto], order, yaTiene);
-          updateOrder({ ...order, hasTicket: true, ticketAt: new Date().toISOString(), ticketFotos: yaTiene + 1 });
+          await guardarTicket(order.id, fotos, order, yaTiene);
+          updateOrder({ ...order, hasTicket: true, ticketAt: new Date().toISOString(), ticketFotos: Math.min(MAX_FOTOS, yaTiene + fotos.length) });
         } catch {
           alert('No se pudo guardar la foto. Inténtalo otra vez.');
           setEstado('');
           return;
         }
-        if (leerDatos && (!order.address || !order.customerPhone)) {
-          setEstado('leyendo');
-          const r = await leerTicket(foto);
-          if (!('error' in r)) {
-            await rellenarPedido(order.id, {
-              ...(!order.address && r.direccion ? { address: r.direccion } : {}),
-              ...(!order.customerPhone && r.telefono ? { customerPhone: r.telefono } : {}),
-            }).catch(() => alert('La foto se guardó, pero no se pudo apuntar la dirección leída.'));
-            if (r.dudas) alert(`Revisa la dirección y el teléfono: ${r.dudas}`);
+        setEstado('leyendo');
+        const lecturas = (await Promise.all(fotos.map(leerTicket))).filter((r): r is LecturaTicket => !('error' in r));
+        setEstado('');
+        if (!lecturas.length) return; // sin lectura la foto queda guardada igual
+        const r = unirLecturas(lecturas);
+        const campos: { address?: string; customerPhone?: string; orderNumber?: string } = {};
+        if (leerDatos && !order.address && r.direccion) campos.address = direccionConPiso(r.direccion, r.piso);
+        if (leerDatos && !order.customerPhone && r.telefono) campos.customerPhone = r.telefono;
+        if (r.numero && r.numero !== order.orderNumber) {
+          if (esNumeroTalonario(order.orderNumber)) {
+            alert(`Ojo: el número rojo del papel parece el ${r.numero} y este pedido es el #${order.orderNumber}. Comprueba que es el papel de este pedido.`);
+          } else if (confirm(`El papel es el nº ${r.numero}. ¿Poner ese número a este pedido (ahora #${order.orderNumber})?`)) {
+            campos.orderNumber = r.numero;
           }
         }
-        setEstado('');
+        if (Object.keys(campos).length) {
+          await rellenarPedido(order.id, campos).catch(() => alert('La foto se guardó, pero no se pudo apuntar lo leído en el pedido.'));
+        }
+        if ((campos.address || campos.customerPhone) && r.dudas) alert(`Revisa la dirección y el teléfono: ${r.dudas}`);
       }}
     />
   );

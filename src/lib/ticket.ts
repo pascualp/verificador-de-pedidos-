@@ -10,10 +10,35 @@ const MAX_CARACTERES = 900_000; // un documento de Firestore admite como mucho 1
 
 export interface LecturaTicket {
   telefono: string | null;
-  direccion: string | null;
+  direccion: string | null; // solo la calle y el número de la casa
+  piso: string | null; // piso, puerta o escalera, aparte: al GPS no le sirve
   importe: number | null;
   nombre: string | null;
+  numero: string | null; // el número rojo del talonario de la comanda
   dudas: string | null; // lo que la IA no está segura de haber leído bien
+}
+
+// Los pedidos de s'Estatua llevan de número el del talonario (unas 7 cifras); los que numera la app van de 1000 en adelante.
+export const esNumeroTalonario = (numero: string) => /^\d{6,}$/.test(numero);
+
+// La dirección del pedido es la calle con el número de la casa; el piso va detrás entre paréntesis,
+// "Migjorn 12B (2h)", para que el repartidor lo vea y Google Maps y Waze no lo reciban (ver direccionCompleta).
+export const direccionConPiso = (direccion: string, piso?: string | null) => (piso ? `${direccion} (${piso})` : direccion);
+
+// Junta lo leído en varias fotos del mismo pedido (la comanda y el ticket, o los dos papeles en una sola foto).
+// La dirección se toma de la lectura más larga: donde el ticket tapa parte de la comanda, sale cortada.
+export function unirLecturas(lecturas: LecturaTicket[]): LecturaTicket {
+  const primera = <K extends keyof LecturaTicket>(campo: K) => lecturas.find((r) => r[campo] != null)?.[campo] ?? null;
+  const direcciones = lecturas.map((r) => r.direccion).filter((d): d is string => !!d);
+  return {
+    telefono: primera('telefono'),
+    direccion: direcciones.sort((a, b) => b.length - a.length)[0] ?? null,
+    piso: primera('piso'),
+    importe: primera('importe'),
+    nombre: primera('nombre'),
+    numero: primera('numero'),
+    dudas: lecturas.map((r) => r.dudas).filter(Boolean).join('; ') || null,
+  };
 }
 
 async function aDataUrl(archivo: File, lado: number, calidad: number): Promise<string> {
@@ -60,7 +85,7 @@ export async function cargarTicket(orderId: string): Promise<string[]> {
 
 // Escribe SOLO estos campos del pedido (merge). La lectura tarda unos segundos y el pedido puede haber
 // cambiado mientras tanto: reescribir el pedido entero con una copia vieja borraría esos cambios.
-export async function rellenarPedido(orderId: string, campos: { address?: string; customerPhone?: string }) {
+export async function rellenarPedido(orderId: string, campos: { address?: string; customerPhone?: string; orderNumber?: string }) {
   if (Object.keys(campos).length) await updateDoc(doc(db, 'orders', orderId), campos);
 }
 
@@ -104,10 +129,12 @@ export async function leerTicket(imagen: string): Promise<LecturaTicket | { erro
 
 // Todas las entregas de s'Estatua son en Llucmajor: si el papel no lo dice, se añade para que
 // Google Maps y Waze no lleven a una calle con el mismo nombre en otro pueblo.
+// Lo que va entre paréntesis (el piso o la puerta) se quita: el GPS solo necesita la calle y el número de la casa.
 export function direccionCompleta(address: string, restaurantId?: string): string {
   if (restaurantId !== RESTAURANTE_CON_TICKET) return address;
-  const sinTildes = address.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  return sinTildes.includes('llucmajor') ? address : `${address}, Llucmajor, Illes Balears`;
+  const calle = address.replace(/\s*\([^)]*\)/g, '').trim() || address;
+  const sinTildes = calle.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return sinTildes.includes('llucmajor') ? calle : `${calle}, Llucmajor, Illes Balears`;
 }
 
 export const enlaceGoogleMaps = (address: string, restaurantId?: string) =>
