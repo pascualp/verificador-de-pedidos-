@@ -7,6 +7,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 // La clave va en la variable ANTHROPIC_API_KEY de Vercel; sin ella responde 503 "sin_clave" y la app sigue a mano.
 
 const MODELO = "claude-haiku-5-5"; // el barato; si lee mal la letra a mano, subir a claude-sonnet-5-5
+const TELEFONO_PIZZERIA = "971660088"; // sale impreso en el ticket de caja
 
 const Lectura = z.object({
   telefono: z.string().nullable(),
@@ -18,10 +19,13 @@ const Lectura = z.object({
 
 const INSTRUCCIONES = `Esta foto es de un pedido a domicilio de la pizzería s'Estatua, en Llucmajor (Mallorca).
 Puede ser la comanda de talonario escrita a mano, el ticket impreso de caja, o los dos juntos.
-El ticket impreso de caja solo sirve para el PRECIO: de ahí sale el importe (el total). No trae dirección ni teléfono.
 
-Cómo la escriben:
-- El TELÉFONO del cliente va casi siempre escrito EN VERTICAL, de lado, en el margen izquierdo. Gira la lectura para leerlo.
+El ticket impreso de caja solo sirve para el PRECIO: el importe es la línea TOTAL (no la BASE ni el IVA).
+Ese ticket es de la propia pizzería: lleva el nombre "PIZZERIA S'ESTATUA", SU dirección (Passeig Jaume III nº 2),
+SU teléfono (971 660 088), el CIF, la fecha y la mesa. NADA de eso es del cliente: nunca lo devuelvas como teléfono ni como dirección.
+
+Cómo escriben la comanda a mano (de ahí salen el teléfono y la dirección del cliente):
+- El TELÉFONO del cliente va a menudo EN VERTICAL, de lado, en el margen izquierdo (gira la lectura para leerlo), y otras veces abajo. Un móvil español empieza por 6 o 7.
 - La DIRECCIÓN va abajo, en el último recuadro: solo el nombre de la calle y el número, a menudo sin "Carrer" y con faltas (por ejemplo "Mijorn 12b" es "Migjorn 12B"). Al lado puede llevar el piso o la puerta en pequeño.
 - En el centro van los productos (pizzas, bebidas): no son ni la dirección ni el teléfono.
 - El número impreso en ROJO abajo a la derecha es el número del talonario: NUNCA es el teléfono.
@@ -66,7 +70,18 @@ export default async function handler(req: any, res: any) {
     if (respuesta.stop_reason === "refusal" || !respuesta.parsed_output) {
       return res.status(422).json({ error: "No se pudo leer la foto" });
     }
-    return res.status(200).json(respuesta.parsed_output);
+    const lectura = { ...respuesta.parsed_output };
+    // Freno: el teléfono impreso en el ticket es el de la pizzería, nunca el del cliente
+    if (lectura.telefono && lectura.telefono.replace(/\D/g, "").endsWith(TELEFONO_PIZZERIA)) {
+      lectura.telefono = null;
+      lectura.dudas = [lectura.dudas, "el único teléfono que se ve es el de la pizzería (971 660 088): falta el del cliente"].filter(Boolean).join("; ");
+    }
+    // Igual con la dirección impresa de la pizzería (Passeig Jaume III nº 2)
+    if (lectura.direccion && /jaume\s*(iii|3)\b/i.test(lectura.direccion)) {
+      lectura.direccion = null;
+      lectura.dudas = [lectura.dudas, "la única dirección que se ve es la de la pizzería: falta la del cliente"].filter(Boolean).join("; ");
+    }
+    return res.status(200).json(lectura);
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) return res.status(503).json({ error: "sin_clave" });
     if (e instanceof Anthropic.RateLimitError) return res.status(429).json({ error: "Demasiadas fotos seguidas: espera unos segundos" });
