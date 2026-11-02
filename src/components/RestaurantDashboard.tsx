@@ -5,6 +5,7 @@ import { TimeRemaining } from './TimeRemaining';
 import { addCollected, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
 import { direccionConPiso, esNumeroTalonario, LecturaTicket, leerTicket, MAX_FOTOS, RESTAURANTE_CON_TICKET, unirLecturas } from '../lib/ticket';
 import { AdjuntarTicket, BotonCamara, VerTicket } from './TicketFoto';
+import { aNumero } from '../lib/formato';
 
 export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number, ticketFotos?: string[]) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
   // New order form state
@@ -325,7 +326,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                               onClick={() => {
                                 const newPriceStr = window.prompt('Editar precio:', order.price?.toString());
                                 if (newPriceStr !== null) {
-                                  const newPrice = parseFloat(newPriceStr) || 0;
+                                  const newPrice = aNumero(newPriceStr) || 0;
                                   const diff = newPrice - (order.price || 0);
                                   if (updateOrder) updateOrder({ ...order, price: newPrice });
                                   
@@ -351,7 +352,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                             onClick={() => {
                               const newPriceStr = window.prompt('Asignar precio:');
                               if (newPriceStr !== null) {
-                                const newPrice = parseFloat(newPriceStr) || 0;
+                                const newPrice = aNumero(newPriceStr) || 0;
                                 if (updateOrder) updateOrder({ ...order, price: newPrice });
                                 
                                 // If delivered, update driver's total collected
@@ -787,7 +788,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                                 onClick={() => {
                                   const newPriceStr = window.prompt('Editar precio:', order.price?.toString());
                                   if (newPriceStr !== null) {
-                                    const newPrice = parseFloat(newPriceStr) || 0;
+                                    const newPrice = aNumero(newPriceStr) || 0;
                                     const diff = newPrice - (order.price || 0);
                                     updateOrder({ ...order, price: newPrice });
                                     
@@ -811,7 +812,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
                               onClick={() => {
                                 const newPriceStr = window.prompt('Asignar precio:');
                                 if (newPriceStr !== null) {
-                                  const newPrice = parseFloat(newPriceStr) || 0;
+                                  const newPrice = aNumero(newPriceStr) || 0;
                                   updateOrder({ ...order, price: newPrice });
                                   
                                   const driver = drivers.find(d => d.id === selectedDriverHistory.id);

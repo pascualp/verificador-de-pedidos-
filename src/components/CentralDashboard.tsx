@@ -7,6 +7,7 @@ import { TimeRemaining } from './TimeRemaining';
 import { WebhookSettings } from './WebhookSettings';
 import { RestaurantDashboard } from './RestaurantDashboard';
 import { addCollected, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
+import { aNumero } from '../lib/formato';
 
 export function CentralDashboard({ 
   drivers, 
@@ -816,7 +817,7 @@ export function CentralDashboard({
                           onClick={() => {
                             const newPrice = window.prompt('Editar precio:', order.price?.toString());
                             if (newPrice !== null) {
-                              updateOrder?.({ ...order, price: parseFloat(newPrice) || 0 });
+                              updateOrder?.({ ...order, price: aNumero(newPrice) || 0 });
                             }
                           }}
                           className="text-emerald-400 hover:text-emerald-600"
@@ -829,7 +830,7 @@ export function CentralDashboard({
                         onClick={() => {
                           const newPrice = window.prompt('Asignar precio:');
                           if (newPrice !== null) {
-                            updateOrder?.({ ...order, price: parseFloat(newPrice) || 0 });
+                            updateOrder?.({ ...order, price: aNumero(newPrice) || 0 });
                           }
                         }}
                         className="text-[10px] bg-gray-50 text-gray-400 px-1.5 py-0.5 rounded border border-dashed border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 transition-colors w-fit"
@@ -974,7 +975,7 @@ function RestaurantColumn({
                               onClick={() => {
                                 const newPriceStr = window.prompt('Editar precio:', order.price?.toString());
                                 if (newPriceStr !== null) {
-                                  const newPrice = parseFloat(newPriceStr) || 0;
+                                  const newPrice = aNumero(newPriceStr) || 0;
                                   const diff = newPrice - (order.price || 0);
                                   updateOrder?.({ ...order, price: newPrice });
                                   
@@ -1000,7 +1001,7 @@ function RestaurantColumn({
                             onClick={() => {
                               const newPriceStr = window.prompt('Asignar precio:');
                               if (newPriceStr !== null) {
-                                const newPrice = parseFloat(newPriceStr) || 0;
+                                const newPrice = aNumero(newPriceStr) || 0;
                                 updateOrder?.({ ...order, price: newPrice });
                                 
                                 // If delivered, update driver's total collected
