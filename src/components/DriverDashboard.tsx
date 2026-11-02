@@ -4,7 +4,7 @@ import { User, CheckCircle, Clock, MapPin, Package, RotateCcw, ArrowLeft, Credit
 import { enlaceGoogleMaps, enlaceWaze, RESTAURANTE_CON_TICKET } from '../lib/ticket';
 import { AdjuntarTicket, VerTicket } from './TicketFoto';
 import { TimeRemaining } from './TimeRemaining';
-import { addCollected, addCollectedBatch, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
+import { addCollected, addCollectedBatch, driverTotal, restOf } from '../lib/caja';
 
 export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, onBack }: { drivers: Driver[], updateDriver: (d: Driver) => void, orders?: Order[], updateOrder?: (o: Order) => void, onBack: () => void }) {
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(() => {
@@ -41,7 +41,8 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
 
   const selectedDriver = drivers.find(d => d.id === selectedDriverId);
 
-  // Lo que lleva el repartidor encima: suma de las cajas de todos los restaurantes
+  // Caja de un repartidor de un solo restaurante (el que trabaja en ambos ve una caja por restaurante, más abajo).
+  // La cierra cada restaurante desde su panel: aquí no hay cierre, para no reiniciar las dos cajas a la vez.
   const getDriverTotal = (driver: Driver) => driverTotal(orders, driver);
 
 
@@ -94,29 +95,6 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
           ...o,
           status: 'Entregado'
         });
-      });
-    }
-  };
-
-  const handleCloseShift = (driver: Driver) => {
-    const total = getDriverTotal(driver);
-    
-    let breakdownStr = '';
-    if (orders) {
-      const shiftOrders = shiftOrdersFor(orders, driver);
-
-      const cashCount = shiftOrders.filter(o => o.paymentMethod === 'efectivo' && (o.price || 0) > 0).length;
-      const cardCount = shiftOrders.filter(o => o.paymentMethod === 'tarjeta').length;
-      const paidCount = shiftOrders.filter(o => !o.paymentMethod || o.price === 0).length;
-      
-      breakdownStr = `\n\nDesglose de entregas:\n- Efectivo: ${cashCount}\n- Tarjeta: ${cardCount}\n- Ya Pagado: ${paidCount}`;
-    }
-
-    if (window.confirm(`¿Cerrar turno de ${driver.name}?\nTotal recaudado: $${total.toFixed(2)}${breakdownStr}\n\nEsta acción reiniciará la caja a $0.00.`)) {
-      updateDriver({
-        ...driver,
-        ...closeShiftPatch(driver),
-        lastUpdated: new Date().toISOString()
       });
     }
   };
@@ -427,23 +405,29 @@ export function DriverDashboard({ drivers, updateDriver, orders, updateOrder, on
               </div>
               
               <div className="mt-8 w-full border-t border-gray-100 pt-8">
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6">
-                  <div className="text-sm font-bold text-emerald-700 uppercase tracking-widest mb-1 text-center">Efectivo en Caja</div>
-                  <div className="text-4xl font-black text-emerald-900 text-center">${getDriverTotal(selectedDriver).toFixed(2)}</div>
-                  {selectedDriver.restaurantId === 'ambos' && (
-                    <div className="grid grid-cols-2 gap-2 mt-3 text-center">
-                      <div className="bg-white/70 rounded-lg py-1.5 border border-emerald-100">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-orange-700">Tropical</div>
-                        <div className="text-sm font-black text-emerald-900">${driverTotal(orders, selectedDriver, 'restaurant1').toFixed(2)}</div>
+                {selectedDriver.restaurantId === 'ambos' ? (
+                  // Trabaja en los dos restaurantes: una caja por restaurante, porque el dinero se entrega y se cierra por separado
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+                    <div className="text-sm font-bold text-emerald-700 uppercase tracking-widest mb-3 text-center">Efectivo en Caja</div>
+                    <div className="grid grid-cols-2 gap-3 text-center">
+                      <div className="bg-white rounded-xl py-4 px-2 border-2 border-orange-200">
+                        <div className="text-xs font-black uppercase tracking-wider text-orange-700">Caja Tropical</div>
+                        <div className="text-3xl font-black text-emerald-900 mt-1">${driverTotal(orders, selectedDriver, 'restaurant1').toFixed(2)}</div>
                       </div>
-                      <div className="bg-white/70 rounded-lg py-1.5 border border-emerald-100">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-rose-700">s'Estatua</div>
-                        <div className="text-sm font-black text-emerald-900">${driverTotal(orders, selectedDriver, 'restaurant2').toFixed(2)}</div>
+                      <div className="bg-white rounded-xl py-4 px-2 border-2 border-rose-200">
+                        <div className="text-xs font-black uppercase tracking-wider text-rose-700">Caja s'Estatua</div>
+                        <div className="text-3xl font-black text-emerald-900 mt-1">${driverTotal(orders, selectedDriver, 'restaurant2').toFixed(2)}</div>
                       </div>
                     </div>
-                  )}
-                  <p className="text-[10px] text-emerald-600 text-center mt-2 font-medium">El cierre de caja debe ser realizado por el restaurante.</p>
-                </div>
+                    <p className="text-[10px] text-emerald-600 text-center mt-3 font-medium">Entrega a cada restaurante solo lo de su caja: cada uno cierra la suya.</p>
+                  </div>
+                ) : (
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6">
+                    <div className="text-sm font-bold text-emerald-700 uppercase tracking-widest mb-1 text-center">Efectivo en Caja</div>
+                    <div className="text-4xl font-black text-emerald-900 text-center">${getDriverTotal(selectedDriver).toFixed(2)}</div>
+                    <p className="text-[10px] text-emerald-600 text-center mt-2 font-medium">El cierre de caja debe ser realizado por el restaurante.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
