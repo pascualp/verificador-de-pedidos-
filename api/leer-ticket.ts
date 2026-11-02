@@ -53,6 +53,9 @@ Devuelve:
   La calle tiene que ser una de la LISTA DE CALLES DE LLUCMAJOR de abajo: escribe su nombre tal como sale en la lista y detrás el número de la casa, por ejemplo "Carrer d'es Born 33" o "Ronda de Migjorn 12B".
   Busca en la lista la calle que corresponde a lo escrito ("Union 35" es "Carrer de la Unió 35", "Guillem Terrer 34" es "Carrer de Guillem Terrassa 34", "Vall 139" es "Carrer d'es Vall 139").
   Si lo escrito no se parece claramente a ninguna calle de la lista, devuelve lo escrito tal cual y dilo en "dudas". Si no lleva número de casa, devuelve solo la calle y dilo en "dudas".
+  Si la dirección no se lee con seguridad, devuelve null y dilo en "dudas": NUNCA elijas una calle de la lista solo porque se parece un poco,
+  porque mandaría al repartidor a otra calle. Los productos (Menor, Perrito, Purgatori, Cola...) no son calles.
+  Si ves dos escrituras superpuestas, una de bolígrafo y otra floja marcada sin tinta, la floja es de la hoja de encima (otro pedido): ignórala.
   No añadas ciudad ni código postal: todas las entregas son en Llucmajor. null si no hay dirección.
   OJO con la dirección: sale SOLO de lo escrito a mano en la comanda. Si el ticket u otra cosa tapa una parte, NO completes ni adivines lo tapado: devuelve solo lo que se ve y escribe en "dudas" que la dirección está tapada o incompleta.
 - piso: el piso, la puerta o la escalera si lo escriben (suele ir pequeño al lado o encima del número de la casa, como "2h", "3º B" o "bajos"), tal como se lee. No lo confundas con el número de la casa. null si no hay.
