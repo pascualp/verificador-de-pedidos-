@@ -8,7 +8,10 @@ import { CALLES_LLUCMAJOR } from "./_lib/calles-llucmajor.js";
 // Solo lee: la foto la guarda la app en Firestore (config/ticket_<pedido>), no esta función.
 // La clave va en la variable ANTHROPIC_API_KEY de Vercel; sin ella responde 503 "sin_clave" y la app sigue a mano.
 
-const MODELO = "claude-haiku-5-5"; // el barato; si lee mal la letra a mano, subir a claude-sonnet-5-5
+// Comparado el 2/11/2026 con 11 fotos reales de la noche del 1/11 (scratchpad comparar_modelos.py):
+// Haiku 5.5 acertaba 5-7 de 10 teléfonos; Sonnet 5.5 (esfuerzo low, con las copias giradas) 9 de 10 y no se inventa calles.
+// Unos 0,01-0,02 $ por foto.
+const MODELO = "claude-sonnet-5-5";
 const ESFUERZO = "low";
 // En las versiones de prueba (no en producción) se puede pedir otro modelo y esfuerzo, para comparar con fotos reales
 const MODELOS_PRUEBA = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"];
@@ -51,6 +54,7 @@ Devuelve:
   Un número tachado no vale: usa el que no está tachado. null si no hay teléfono.
 - direccion: SOLO la calle y el número de la casa (es lo que necesita el GPS para llegar). El piso y la puerta NO van aquí.
   La calle tiene que ser una de la LISTA DE CALLES DE LLUCMAJOR de abajo: escribe su nombre tal como sale en la lista y detrás el número de la casa, por ejemplo "Carrer d'es Born 33" o "Ronda de Migjorn 12B".
+  El número de la casa a veces va con "Nº", "n" o "nº" delante ("San Pere Nº 9" es "Carrer de Sant Pere 9").
   Busca en la lista la calle que corresponde a lo escrito ("Union 35" es "Carrer de la Unió 35", "Guillem Terrer 34" es "Carrer de Guillem Terrassa 34", "Vall 139" es "Carrer d'es Vall 139").
   Si lo escrito no se parece claramente a ninguna calle de la lista, devuelve lo escrito tal cual y dilo en "dudas". Si no lleva número de casa, devuelve solo la calle y dilo en "dudas".
   Si la dirección no se lee con seguridad, devuelve null y dilo en "dudas": NUNCA elijas una calle de la lista solo porque se parece un poco,
