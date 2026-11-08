@@ -3,10 +3,7 @@ import { db } from '../firebase';
 
 // Foto del ticket de s'Estatua. Se guarda aparte del pedido (config/ticket_<id>) para que la lista
 // de pedidos, que la app escucha entera, no cargue fotos. Las reglas de Firestore ya permiten "config".
-// 8/11/2026: Facu pidió QUITAR la opción de la foto y que todo siga como antes. Con '' ningún restaurante coincide:
-// desaparecen la cámara, la galería, «ver ticket», el botón de Waze y el filtro de nº de talonario, y el botón del mapa
-// vuelve a ser «VER EN GPS». Para volver a activarla, poner 'restaurant2' (el resto del código sigue ahí).
-export const RESTAURANTE_CON_TICKET = '';
+export const RESTAURANTE_CON_TICKET = 'restaurant2';
 
 const MAX_LADO = 1568; // el lado más largo que aprovecha la IA al leer; la letra a mano necesita resolución
 const MAX_CARACTERES = 900_000; // un documento de Firestore admite como mucho 1 MiB
