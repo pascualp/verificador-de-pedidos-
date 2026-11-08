@@ -93,7 +93,9 @@ export default async function handler(req: any, res: any) {
     : "";
 
   try {
-    const client = new Anthropic();
+    // 8/11/2026: tiempo máximo y un solo reintento, para que si la API va lenta o se queda sin saldo la app reciba
+    // un error claro enseguida (y siga funcionando con los datos a mano) en vez de quedarse esperando.
+    const client = new Anthropic({ timeout: 40_000, maxRetries: 1 });
     const respuesta = await client.messages.parse({
       model: modelo,
       max_tokens: 8000,
@@ -129,6 +131,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json(prueba ? { ...lectura, _modelo: modelo, _esfuerzo: esfuerzo, _uso: respuesta.usage } : lectura);
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) return res.status(503).json({ error: "sin_clave" });
+    if (e instanceof Anthropic.APIConnectionTimeoutError) return res.status(504).json({ error: "La IA tardó demasiado: escribe los datos a mano" });
     if (e instanceof Anthropic.RateLimitError) return res.status(429).json({ error: "Demasiadas fotos seguidas: espera unos segundos" });
     if (e instanceof Anthropic.APIError) return res.status(502).json({ error: `La IA no respondió (${e.status})` });
     console.error("leer-ticket:", e);

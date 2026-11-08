@@ -115,11 +115,16 @@ async function girar(dataUrl: string, grados: 90 | -90, lado = 1200): Promise<st
 export async function leerTicket(imagen: string): Promise<LecturaTicket | { error: string }> {
   try {
     const giradas = (await Promise.all([girar(imagen, 90), girar(imagen, -90)])).filter((x): x is string => !!x);
+    // 8/11/2026: si la lectura no contesta en 55 s se abandona (error «Sin conexión»): el botón nunca se queda colgado
+    // y el pedido se puede escribir y crear a mano.
+    const corte = new AbortController();
+    const temporizador = setTimeout(() => corte.abort(), 55_000);
     const r = await fetch('/api/leer-ticket', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imagenes: [imagen, ...giradas] }),
-    });
+      signal: corte.signal,
+    }).finally(() => clearTimeout(temporizador));
     const datos = await r.json().catch(() => ({ error: 'Respuesta no válida' }));
     return r.ok ? datos : { error: datos.error || `Error ${r.status}` };
   } catch {
