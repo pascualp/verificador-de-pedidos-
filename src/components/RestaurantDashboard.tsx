@@ -6,6 +6,7 @@ import { addCollected, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } fr
 import { direccionConPiso, esNumeroTalonario, LecturaTicket, leerTicket, MAX_FOTOS, RESTAURANTE_CON_TICKET, unirLecturas } from '../lib/ticket';
 import { AdjuntarTicket, BotonCamara, VerTicket } from './TicketFoto';
 import { aNumero } from '../lib/formato';
+import { useHistorial } from '../lib/historial';
 
 export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders, updateOrder, addOrder, deleteOrder, restaurantId }: { drivers: Driver[], updateDriver: (d: Driver) => void, themeColor: 'orange' | 'rose', orders?: Order[], updateOrder?: (o: Order) => void, addOrder?: (orderNumber: string, customerName: string, customerPhone: string, restaurantId: string, address: string, prepTime?: number, price?: number, ticketFotos?: string[]) => void, deleteOrder?: (id: string) => void, restaurantId?: string }) {
   // New order form state
@@ -24,6 +25,8 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
   const [ticketFotos, setTicketFotos] = useState<string[]>([]);
   const [leyendoTicket, setLeyendoTicket] = useState(false);
   const [avisoTicket, setAvisoTicket] = useState('');
+
+  const pedidosHistorial = useHistorial(orders, historyDate, historyDate, currentTab === 'history' || selectedDriverHistory !== null);
 
   const isPriceRequired = restaurantId === 'restaurant2';
 
@@ -491,7 +494,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
 
             <div className="space-y-4">
               {(() => {
-                const historyOrders = (orders || []).filter(o => {
+                const historyOrders = pedidosHistorial.filter(o => {
                   const isPast = o.status === 'Entregado' || o.status === 'Cancelado';
                   if (!isPast) return false;
                   const orderDate = new Date(o.assignedAt || o.createdAt).toLocaleDateString('en-CA');
@@ -725,7 +728,7 @@ export function RestaurantDashboard({ drivers, updateDriver, themeColor, orders,
 
       {/* Driver History Modal */}
       {selectedDriverHistory && (() => {
-        const filteredOrders = (orders || []).filter(o => {
+        const filteredOrders = pedidosHistorial.filter(o => {
           if (o.driverId !== selectedDriverHistory.id || o.status !== 'Entregado') return false;
           const orderDate = new Date(o.assignedAt || o.createdAt).toLocaleDateString('en-CA');
           return orderDate === historyDate;

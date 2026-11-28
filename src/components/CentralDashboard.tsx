@@ -8,6 +8,7 @@ import { WebhookSettings } from './WebhookSettings';
 import { RestaurantDashboard } from './RestaurantDashboard';
 import { addCollected, closeShiftPatch, driverTotal, restOf, shiftOrdersFor } from '../lib/caja';
 import { aNumero } from '../lib/formato';
+import { useHistorial } from '../lib/historial';
 
 export function CentralDashboard({ 
   drivers, 
@@ -56,6 +57,8 @@ export function CentralDashboard({
   });
   const [endDate, setEndDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
   const [historyFilter, setHistoryFilter] = useState<'all' | 'restaurant1' | 'restaurant2'>('all');
+
+  const pedidosHistorial = useHistorial(orders, startDate, endDate, currentView === 'history');
 
   const toggleVisibility = (restId: string) => {
     setHiddenRestaurants(prev => ({ ...prev, [restId]: !prev[restId] }));
@@ -504,7 +507,7 @@ export function CentralDashboard({
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3 space-y-4">
               {(() => {
-                const historyOrders = (orders || []).filter(o => {
+                const historyOrders = pedidosHistorial.filter(o => {
                   const isPast = o.status === 'Entregado' || o.status === 'Cancelado';
                   if (!isPast) return false;
                   if (historyFilter !== 'all' && o.restaurantId !== historyFilter) return false;
@@ -583,7 +586,7 @@ export function CentralDashboard({
             {/* Sidebar Report */}
             <div className="lg:col-span-1 space-y-6">
               {(() => {
-                const filtered = (orders || []).filter(o => {
+                const filtered = pedidosHistorial.filter(o => {
                   const isPast = o.status === 'Entregado' || o.status === 'Cancelado';
                   if (!isPast) return false;
                   if (historyFilter !== 'all' && o.restaurantId !== historyFilter) return false;
